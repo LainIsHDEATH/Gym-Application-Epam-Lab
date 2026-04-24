@@ -1,0 +1,3 @@
+#id;userId;specialization
+1;2;Fitness
+2;3;Yoga

@@ -1,0 +1,4 @@
+#id;trainingTypeName
+1;Cardio
+2;Strength
+3;Yoga
