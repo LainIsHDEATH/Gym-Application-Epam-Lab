@@ -1,0 +1,4 @@
+#id;firstName;lastName;username;password;isActive
+1;Ivan;Petrenko;Ivan.Petrenko;abc1234567;true
+2;Oleg;Shevchenko;Oleg.Shevchenko;qwerty1234;true
+3;Anna;Koval;Anna.Koval;pass123456;true
