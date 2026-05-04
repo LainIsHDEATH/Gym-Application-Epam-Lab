@@ -36,6 +36,13 @@ public class UserDao implements CrudDao<Long, User> {
         return Optional.ofNullable(storage.get(id));
     }
 
+    public Optional<User> findByUsername(String username) {
+        return storage.values()
+                .stream()
+                .filter(user -> user.getUsername().equals(username))
+                .findFirst();
+    }
+
     @Override
     public List<User> findAll() {
         return new ArrayList<>(storage.values());

@@ -1,6 +1,7 @@
 package ua.ivan.epam.gym.application.facade;
 
 import org.springframework.stereotype.Component;
+import ua.ivan.epam.gym.application.authentication.AuthService;
 import ua.ivan.epam.gym.application.model.Trainee;
 import ua.ivan.epam.gym.application.model.Trainer;
 import ua.ivan.epam.gym.application.model.Training;
@@ -17,13 +18,16 @@ public class GymFacade {
     private final TraineeService traineeService;
     private final TrainerService trainerService;
     private final TrainingService trainingService;
+    private final AuthService authService;
 
     public GymFacade(TraineeService traineeService,
                      TrainerService trainerService,
-                     TrainingService trainingService) {
+                     TrainingService trainingService,
+                     AuthService authService) {
         this.traineeService = traineeService;
         this.trainerService = trainerService;
         this.trainingService = trainingService;
+        this.authService = authService;
     }
 
     // ========================
@@ -37,15 +41,18 @@ public class GymFacade {
         return traineeService.create(firstName, lastName, dateOfBirth, address);
     }
 
-    public Trainee getTrainee(Long traineeId) {
+    public Trainee getTrainee(Long traineeId, String username, String password) {
+        authService.authenticate(username, password);
         return traineeService.get(traineeId);
     }
 
-    public Trainee updateTrainee(Trainee trainee) {
+    public Trainee updateTrainee(Trainee trainee, String username, String password) {
+        authService.authenticate(username, password);
         return traineeService.update(trainee);
     }
 
-    public void deleteTrainee(Long traineeId) {
+    public void deleteTrainee(Long traineeId, String username, String password) {
+        authService.authenticate(username, password);
         traineeService.delete(traineeId);
     }
 
@@ -59,11 +66,13 @@ public class GymFacade {
         return trainerService.create(firstName, lastName, specialization);
     }
 
-    public Trainer getTrainer(Long trainerId) {
+    public Trainer getTrainer(Long trainerId, String username, String password) {
+        authService.authenticate(username, password);
         return trainerService.get(trainerId);
     }
 
-    public Trainer updateTrainer(Trainer trainer) {
+    public Trainer updateTrainer(Trainer trainer, String username, String password) {
+        authService.authenticate(username, password);
         return trainerService.update(trainer);
     }
 
@@ -76,7 +85,10 @@ public class GymFacade {
                                    String trainingName,
                                    Long trainingTypeId,
                                    LocalDate trainingDate,
-                                   int trainingDuration) {
+                                   int trainingDuration,
+                                   String username,
+                                   String password) {
+        authService.authenticate(username, password);
         return trainingService.create(
                 traineeId,
                 trainerId,
@@ -87,11 +99,13 @@ public class GymFacade {
         );
     }
 
-    public Training getTraining(Long trainingId) {
+    public Training getTraining(Long trainingId, String username, String password) {
+        authService.authenticate(username, password);
         return trainingService.get(trainingId);
     }
 
-    public List<Training> getAllTrainings() {
+    public List<Training> getAllTrainings(String username, String password) {
+        authService.authenticate(username, password);
         return trainingService.getAll();
     }
 }
