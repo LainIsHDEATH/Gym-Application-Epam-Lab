@@ -318,7 +318,7 @@ class TrainingRepositoryTest {
         );
 
         assertEquals(1, result.size());
-        assertSame(training, result.get(0));
+        assertSame(training, result.getFirst());
 
         verify(traineeUserJoin).get("username");
         verify(trainerUserJoin).get("firstName");
@@ -358,7 +358,7 @@ class TrainingRepositoryTest {
         );
 
         assertEquals(1, result.size());
-        assertSame(training, result.get(0));
+        assertSame(training, result.getFirst());
 
         verify(cb).equal(usernamePath, "John.Smith");
 
@@ -393,7 +393,7 @@ class TrainingRepositoryTest {
         );
 
         assertEquals(1, result.size());
-        assertSame(training, result.get(0));
+        assertSame(training, result.getFirst());
 
         verify(trainerUserJoin).get("username");
         verify(traineeUserJoin).get("firstName");
@@ -428,7 +428,7 @@ class TrainingRepositoryTest {
         );
 
         assertEquals(1, result.size());
-        assertSame(training, result.get(0));
+        assertSame(training, result.getFirst());
 
         verify(cb).equal(usernamePath, "Trainer.One");
 

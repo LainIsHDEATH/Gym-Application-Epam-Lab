@@ -1,6 +1,5 @@
 package ua.ivan.epam.gym.application.service;
 
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -344,7 +343,7 @@ class TrainingServiceTest {
         List<Training> result = trainingService.getTraineeTrainings(request);
 
         assertEquals(1, result.size());
-        assertSame(training, result.get(0));
+        assertSame(training, result.getFirst());
 
         verify(trainingRepository).findTraineeTrainingsByCriteria(
                 "John.Smith",
@@ -407,7 +406,7 @@ class TrainingServiceTest {
         List<Training> result = trainingService.getTrainerTrainings(request);
 
         assertEquals(1, result.size());
-        assertSame(training, result.get(0));
+        assertSame(training, result.getFirst());
 
         verify(trainingRepository).findTrainerTrainingsByCriteria(
                 "Mike.Brown",
