@@ -1,0 +1,24 @@
+storage:
+  init:
+    users:
+      path: data/users.txt
+    trainers:
+      path: data/trainers.txt
+    trainees:
+      path: data/trainees.txt
+    trainings:
+      path: data/trainings.txt
+    training-types:
+      path: data/training-types.txt
+
+db:
+  url: jdbc:postgresql://localhost:5431/gym_db
+  username: postgres
+  password: postgres
+  driver-class-name: org.postgresql.Driver
+
+hibernate:
+  dialect: org.hibernate.dialect.PostgreSQLDialect
+  ddl-auto: update
+  show-sql: true
+  format-sql: true
