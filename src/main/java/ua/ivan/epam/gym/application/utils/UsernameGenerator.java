@@ -1,31 +1,22 @@
 package ua.ivan.epam.gym.application.utils;
 
 import org.springframework.stereotype.Component;
-import ua.ivan.epam.gym.application.model.User;
 
-import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
+import java.util.function.Predicate;
 
 @Component
 public class UsernameGenerator {
 
-    public String generate(String firstName, String lastName, List<User> existingUsers) {
+    public String generate(String firstName, String lastName, Predicate<String> usernameExists) {
         String base = firstName + "." + lastName;
+        String candidate = base;
+        int suffix = 1;
 
-        Set<String> usernames = existingUsers.stream()
-                .map(User::getUsername)
-                .collect(Collectors.toSet());
-
-        if (!usernames.contains(base)) {
-            return base;
+        while (usernameExists.test(candidate)) {
+            candidate = base + suffix;
+            suffix++;
         }
 
-        int i = 1;
-        while (usernames.contains(base + i)) {
-            i++;
-        }
-
-        return base + i;
+        return candidate;
     }
 }

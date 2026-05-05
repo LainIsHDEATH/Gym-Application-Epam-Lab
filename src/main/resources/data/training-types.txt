@@ -2,3 +2,8 @@
 1;Cardio
 2;Strength
 3;Yoga
+4;Pilates
+5;CrossFit
+6;Stretching
+7;Boxing
+8;Functional

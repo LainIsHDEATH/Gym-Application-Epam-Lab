@@ -1,9 +1,9 @@
-package ua.ivan.epam.gym.application.dao;
+package ua.ivan.epam.gym.application.repository;
 
 import java.util.List;
 import java.util.Optional;
 
-public interface CrudDao<ID, T> {
+public interface CrudRepo<ID, T> {
 
     T save(T entity);
 
