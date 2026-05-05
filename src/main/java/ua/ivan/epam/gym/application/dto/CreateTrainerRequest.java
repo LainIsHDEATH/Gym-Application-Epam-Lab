@@ -2,11 +2,11 @@ package ua.ivan.epam.gym.application.dto;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import ua.ivan.epam.gym.application.model.TrainingType;
+import jakarta.validation.constraints.Size;
 
 public record CreateTrainerRequest(
-        @NotBlank String firstName,
-        @NotBlank String lastName,
+        @NotBlank @Size(max = 50) String firstName,
+        @NotBlank @Size(max = 50) String lastName,
         @NotNull Long specializationId
 ) {
 }

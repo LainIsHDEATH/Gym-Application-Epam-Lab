@@ -7,7 +7,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ua.ivan.epam.gym.application.dto.CreateTrainerRequest;
 import ua.ivan.epam.gym.application.dto.UpdateTrainerRequest;
-import ua.ivan.epam.gym.application.model.Trainee;
 import ua.ivan.epam.gym.application.model.Trainer;
 import ua.ivan.epam.gym.application.model.TrainingType;
 import ua.ivan.epam.gym.application.model.User;
@@ -116,7 +115,7 @@ public class TrainerService {
 
     @Transactional
     public Trainer changeActiveStatus(Long trainerId) {
-        log.info("Changing trainer profile status. trainerId={}", trainerId);;
+        log.info("Changing trainer profile status. trainerId={}", trainerId);
 
         Trainer trainer = trainerRepository.findById(trainerId)
                 .orElseThrow(() -> {
