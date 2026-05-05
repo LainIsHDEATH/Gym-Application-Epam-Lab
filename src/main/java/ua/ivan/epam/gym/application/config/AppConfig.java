@@ -5,7 +5,7 @@ import org.springframework.context.support.PropertySourcesPlaceholderConfigurer;
 
 @Configuration
 @ComponentScan(basePackages = "ua.ivan.epam.gym.application")
-@PropertySource("classpath:application.yaml")
+@PropertySource("classpath:application.properties")
 @Import({
         PersistenceConfig.class,
         ValidationConfig.class
