@@ -87,11 +87,21 @@ public class UserRepository implements CrudRepo<Long, User> {
 
     public boolean existsById(Long id) {
         return em.createQuery("""
-                SELECT count(t)
-                FROM User t
-                WHERE t.id = :id
-                """, Long.class)
+                        SELECT count(t)
+                        FROM User t
+                        WHERE t.id = :id
+                        """, Long.class)
                 .setParameter("id", id)
+                .getSingleResult() > 0;
+    }
+
+    public boolean existsByUsername(String username) {
+         return em.createQuery("""
+                        SELECT COUNT(u)
+                        FROM User u
+                        WHERE u.username = :username
+                        """, Long.class)
+                .setParameter("username", username)
                 .getSingleResult() > 0;
     }
 }

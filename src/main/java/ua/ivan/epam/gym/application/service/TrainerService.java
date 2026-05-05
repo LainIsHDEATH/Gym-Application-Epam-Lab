@@ -44,7 +44,10 @@ public class TrainerService {
 
         List<User> users = userRepository.findAll();
 
-        String username = usernameGenerator.generate(request.firstName(), request.lastName(), users);
+        String username = usernameGenerator.generate(
+                request.firstName(),
+                request.lastName(),
+                userRepository::existsByUsername);
         String password = passwordGenerator.generate();
 
         User user = User.builder()
