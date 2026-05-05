@@ -13,23 +13,14 @@ import java.util.Optional;
 
 @Repository
 @Slf4j
-public class TrainingTypeRepository implements CrudRepo<Long, TrainingType> {
+public class TrainingTypeRepository {
     @PersistenceContext
     private EntityManager em;
 
-    @Override
-    public TrainingType save(TrainingType trainingType) {
-        em.persist(trainingType);
-        log.debug("Saved training type. id={}", trainingType.getId());
-        return trainingType;
-    }
-
-    @Override
     public Optional<TrainingType> findById(Long id) {
         return Optional.ofNullable(em.find(TrainingType.class, id));
     }
 
-    @Override
     public List<TrainingType> findAll() {
         return em.createQuery("""
                         SELECT t
@@ -38,37 +29,16 @@ public class TrainingTypeRepository implements CrudRepo<Long, TrainingType> {
                 .getResultList();
     }
 
-    @Override
-    public TrainingType update(TrainingType trainingType) {
-        if (trainingType == null || trainingType.getId() == null) {
-            log.warn("Cannot update training type. Training type or training type id is null");
-            throw new IllegalArgumentException("Training type and training type id must not be null");
-        }
-
-        boolean trainingExists = existsById(trainingType.getId());
-
-        if (!trainingExists) {
-            log.warn("Cannot update training type. Training type not found. id={}", trainingType.getId());
-            throw new EntityNotFoundException("Training type not found. id=" + trainingType.getId());
-        }
-
-        TrainingType updatedTrainingType = em.merge(trainingType);
-
-        log.debug("Updated training type. id={}", updatedTrainingType.getId());
-
-        return updatedTrainingType;
-    }
-
-    @Override
-    public void deleteById(Long id) {
-        Training training = em.find(Training.class, id);
-
-        try {
-            em.remove(training);
-            log.debug("Deleted training. id={}", id);
-        } catch (IllegalArgumentException e) {
-            log.warn("Cannot delete training. Training not found. id={}", id);
-        }
+    public Optional<TrainingType> findByName(String name) {
+        return em.createQuery("""
+                SELECT t
+                FROM TrainingType t
+                WHERE t.trainingTypeName = :name
+                """, TrainingType.class)
+                .setParameter("name", name)
+                .getResultList()
+                .stream()
+                .findFirst();
     }
 
     public boolean existsById(Long id) {

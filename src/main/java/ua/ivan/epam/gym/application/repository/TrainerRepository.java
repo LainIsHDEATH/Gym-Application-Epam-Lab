@@ -30,6 +30,20 @@ public class TrainerRepository implements CrudRepo<Long, Trainer> {
         return Optional.ofNullable(em.find(Trainer.class, id));
     }
 
+    public Optional<Trainer> findByUsername(String username) {
+        return em.createQuery("""
+                SELECT t
+                FROM Trainer t
+                JOIN FETCH t.user u
+                JOIN FETCH t.specialization
+                WHERE u.username = :username
+                """, Trainer.class)
+                .setParameter("username", username)
+                .getResultList()
+                .stream()
+                .findFirst();
+    }
+
     @Override
     public List<Trainer> findAll() {
         return em.createQuery("""
@@ -80,5 +94,22 @@ public class TrainerRepository implements CrudRepo<Long, Trainer> {
                         """, Long.class)
                 .setParameter("id", id)
                 .getSingleResult() > 0;
+    }
+
+    public List<Trainer> findNotAssignedToTrainee(String traineeUsername) {
+        return em.createQuery("""
+            SELECT tr
+            FROM Trainer tr
+            JOIN FETCH tr.user u
+            WHERE tr.id NOT IN (
+                SELECT assignedTrainer.id
+                FROM Trainee te
+                JOIN te.user traineeUser
+                JOIN te.trainers assignedTrainer
+                WHERE traineeUser.username = :traineeUsername
+            )
+            """, Trainer.class)
+                .setParameter("traineeUsername", traineeUsername)
+                .getResultList();
     }
 }

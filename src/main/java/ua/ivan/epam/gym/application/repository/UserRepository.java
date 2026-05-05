@@ -38,7 +38,8 @@ public class UserRepository implements CrudRepo<Long, User> {
                         WHERE t.username = :username
                         """, User.class)
                 .setParameter("username", username)
-                .getResultStream()
+                .getResultList()
+                .stream()
                 .findFirst();
     }
 

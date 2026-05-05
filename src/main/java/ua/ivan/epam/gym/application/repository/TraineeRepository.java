@@ -30,6 +30,19 @@ public class TraineeRepository implements CrudRepo<Long, Trainee> {
         return Optional.ofNullable(em.find(Trainee.class, id));
     }
 
+    public Optional<Trainee> findByUsername(String username) {
+        return em.createQuery("""
+                SELECT t
+                FROM Trainee t
+                JOIN FETCH t.user u
+                WHERE u.username = :username
+                """, Trainee.class)
+                .setParameter("username", username)
+                .getResultList()
+                .stream()
+                .findFirst();
+    }
+
     @Override
     public List<Trainee> findAll() {
         return em.createQuery("""
