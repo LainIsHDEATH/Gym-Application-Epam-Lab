@@ -1,60 +1,70 @@
 package ua.ivan.epam.gym.application.service;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
+import jakarta.persistence.EntityNotFoundException;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import ua.ivan.epam.gym.application.dao.CrudDao;
+import org.springframework.transaction.annotation.Transactional;
+import ua.ivan.epam.gym.application.dto.CreateTrainerRequest;
+import ua.ivan.epam.gym.application.dto.UpdateTrainerRequest;
 import ua.ivan.epam.gym.application.model.Trainer;
+import ua.ivan.epam.gym.application.model.TrainingType;
 import ua.ivan.epam.gym.application.model.User;
+import ua.ivan.epam.gym.application.repository.TraineeRepository;
+import ua.ivan.epam.gym.application.repository.TrainerRepository;
+import ua.ivan.epam.gym.application.repository.TrainingTypeRepository;
+import ua.ivan.epam.gym.application.repository.UserRepository;
 import ua.ivan.epam.gym.application.utils.PasswordGenerator;
 import ua.ivan.epam.gym.application.utils.UsernameGenerator;
 
 import java.util.List;
 
 @Service
+@RequiredArgsConstructor
+@Slf4j
 public class TrainerService {
-    private static final Logger log = LoggerFactory.getLogger(TrainerService.class);
 
-    private final CrudDao<Long, Trainer> trainerDao;
-    private final CrudDao<Long, User> userDao;
+    private final TrainerRepository trainerRepository;
+    private final UserRepository userRepository;
+    private final TrainingTypeRepository trainingTypeRepository;
+    private final TraineeRepository traineeRepository;
     private final UsernameGenerator usernameGenerator;
     private final PasswordGenerator passwordGenerator;
 
-    @Autowired
-    public TrainerService(CrudDao<Long, Trainer> trainerDao,
-                          CrudDao<Long, User> userDao,
-                          UsernameGenerator usernameGenerator,
-                          PasswordGenerator passwordGenerator) {
-        this.trainerDao = trainerDao;
-        this.userDao = userDao;
-        this.usernameGenerator = usernameGenerator;
-        this.passwordGenerator = passwordGenerator;
-    }
-
-    public Trainer create(String firstName, String lastName,
-                          String specialization) {
+    @Transactional
+    public Trainer create(CreateTrainerRequest request) {
         log.info("Creating trainer profile for {} {}, specialization={}",
-                firstName, lastName, specialization);
+                request.firstName(), request.lastName(), request.specializationId());
 
-        List<User> users = userDao.findAll();
+        TrainingType specialization = trainingTypeRepository.findById(request.specializationId())
+                .orElseThrow(() -> {
+                    log.warn("Cannot create trainer. Training type not found. id={}", request.specializationId());
+                    return new EntityNotFoundException("Training type not found. id=" + request.specializationId());
+                });
 
-        String username = usernameGenerator.generate(firstName, lastName, users);
+        List<User> users = userRepository.findAll();
+
+        String username = usernameGenerator.generate(
+                request.firstName(),
+                request.lastName(),
+                userRepository::existsByUsername);
         String password = passwordGenerator.generate();
 
-        User user = new User();
-        user.setFirstName(firstName);
-        user.setLastName(lastName);
-        user.setUsername(username);
-        user.setPassword(password);
-        user.setIsActive(true);
+        User user = User.builder()
+                .firstName(request.firstName())
+                .lastName(request.lastName())
+                .username(username)
+                .password(password)
+                .isActive(true)
+                .build();
 
-        User savedUser = userDao.save(user);
+        User savedUser = userRepository.save(user);
 
         Trainer trainer = new Trainer();
-        trainer.setUserId(savedUser.getId());
+        trainer.setUser(savedUser);
         trainer.setSpecialization(specialization);
-        Trainer savedTrainer = trainerDao.save(trainer);
+
+        Trainer savedTrainer = trainerRepository.save(trainer);
 
         log.info("Created trainer profile. trainerId={}, userId={}, username={}",
                 savedTrainer.getId(), savedUser.getId(), savedUser.getUsername());
@@ -62,23 +72,94 @@ public class TrainerService {
         return savedTrainer;
     }
 
+    @Transactional(readOnly = true)
     public Trainer get(Long id) {
         log.debug("Searching trainer by id={}", id);
 
-        return trainerDao.findById(id)
+        return trainerRepository.findById(id)
                 .orElseThrow(() -> {
                     log.warn("Trainer not found. id={}", id);
-                    return new RuntimeException("Trainer not found");
+                    return new EntityNotFoundException("Trainer not found");
                 });
     }
 
-    public Trainer update(Trainer trainer) {
-        log.info("Updating trainer profile. trainerId={}", trainer.getId());
+    @Transactional(readOnly = true)
+    public Trainer getByUsername(String username) {
+        log.debug("Searching trainer by username={}", username);
 
-        Trainer updated = trainerDao.update(trainer);
+        return trainerRepository.findByUsername(username)
+                .orElseThrow(() -> new EntityNotFoundException(
+                        "Trainer not found. username=" + username
+                ));
+    }
 
-        log.info("Updated trainer profile. trainerId={}", updated.getId());
+    @Transactional
+    public Trainer update(UpdateTrainerRequest request) {
+        log.info("Updating trainer profile. trainerId={}", request.trainerId());
 
-        return updated;
+        Trainer trainer = trainerRepository.findById(request.trainerId())
+                .orElseThrow(() -> {
+                    log.warn("Cannot update trainer. Trainer not found. trainerId={}", request.trainerId());
+                    return new EntityNotFoundException("Trainer not found");
+                });
+
+        TrainingType trainingType = trainingTypeRepository.findById(request.specializationId())
+                .orElseThrow(() -> {
+                    log.warn("Cannot update trainer. Training type not found. id={}", request.specializationId());
+                    return new EntityNotFoundException("Training type not found. id=" + request.specializationId());
+                });
+
+        trainer.setSpecialization(trainingType);
+
+        log.info("Updated trainer profile. trainerId={}", trainer.getId());
+
+        return trainer;
+    }
+
+    @Transactional
+    public Trainer changeActiveStatus(Long trainerId) {
+        log.info("Changing trainer profile status. trainerId={}", trainerId);
+
+        Trainer trainer = trainerRepository.findById(trainerId)
+                .orElseThrow(() -> {
+                    log.warn("Cannot change trainer status. Trainer not found. id={}", trainerId);
+                    return new EntityNotFoundException("Trainer not found. id=" + trainerId);
+                });
+
+        User user = trainer.getUser();
+
+        boolean currentStatus = user.getIsActive();
+
+        user.setIsActive(!currentStatus);
+
+        log.info("Changed trainer profile status. trainerId={}, newStatus={}",
+                trainer.getId(), user.getIsActive());
+
+        return trainer;
+    }
+
+    @Transactional
+    public void changePassword(String username, String oldPassword, String newPassword) {
+        Trainer trainer = getByUsername(username);
+        User user = trainer.getUser();
+
+        if (!oldPassword.equals(user.getPassword())) {
+            log.warn("Cannot change trainer password. Old password is incorrect. username={}", username);
+            throw new IllegalArgumentException("Old password is incorrect");
+        }
+        user.setPassword(newPassword);
+
+        log.info("Changed trainer password. username={}", username);
+    }
+
+    @Transactional(readOnly = true)
+    public List<Trainer> getNotAssignedToTrainee(String traineeUsername) {
+        traineeRepository.findByUsername(traineeUsername)
+                .orElseThrow(() -> {
+                    log.warn("Trainee not found. username={}", traineeUsername);
+                    return new EntityNotFoundException("Trainee not found. username=" + traineeUsername);
+                });
+
+        return trainerRepository.findNotAssignedToTrainee(traineeUsername);
     }
 }

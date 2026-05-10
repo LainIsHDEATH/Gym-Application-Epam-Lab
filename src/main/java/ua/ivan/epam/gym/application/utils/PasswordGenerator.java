@@ -8,9 +8,9 @@ import java.util.Random;
 public class PasswordGenerator {
 
     private static final String CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+    private final Random random = new Random();
 
     public String generate() {
-        Random random = new Random();
         StringBuilder sb = new StringBuilder(10);
 
         for (int i = 0; i < 10; i++) {

@@ -1,2 +1,16 @@
 #id;userId;dateOfBirth;address
 1;1;2002-05-10;Ivano-Frankivsk
+2;2;1999-11-21;Kyiv
+3;3;2001-03-15;Lviv
+4;4;1998-07-02;Odesa
+5;5;2000-12-30;Kharkiv
+6;6;1997-01-19;Dnipro
+7;7;2003-09-08;Ternopil
+8;8;1996-04-27;Chernivtsi
+9;9;2004-06-18;Vinnytsia
+10;10;1995-02-05;Poltava
+11;11;2001-10-11;Uzhhorod
+12;12;1999-08-23;Rivne
+13;13;2002-01-14;Lutsk
+14;14;1998-05-29;Cherkasy
+15;15;2000-07-17;Zhytomyr

@@ -7,8 +7,8 @@ import org.springframework.context.support.PropertySourcesPlaceholderConfigurer;
 @ComponentScan(basePackages = "ua.ivan.epam.gym.application")
 @PropertySource("classpath:application.properties")
 @Import({
-        StorageConfig.class,
-        IdGeneratorConfig.class
+        PersistenceConfig.class,
+        ValidationConfig.class
 })
 public class AppConfig {
 

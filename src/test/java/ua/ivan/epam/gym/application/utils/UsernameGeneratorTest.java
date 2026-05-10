@@ -1,9 +1,9 @@
 package ua.ivan.epam.gym.application.utils;
 
 import org.junit.jupiter.api.Test;
-import ua.ivan.epam.gym.application.model.User;
 
-import java.util.List;
+import java.util.Set;
+import java.util.function.Predicate;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -12,35 +12,65 @@ class UsernameGeneratorTest {
     private final UsernameGenerator usernameGenerator = new UsernameGenerator();
 
     @Test
-    void generateShouldReturnFirstNameDotLastNameWhenUsernameDoesNotExist() {
-        String username = usernameGenerator.generate(
+    void generateShouldReturnBaseUsernameWhenUsernameDoesNotExist() {
+        Predicate<String> usernameExists = username -> false;
+
+        String result = usernameGenerator.generate(
                 "John",
                 "Smith",
-                List.of()
+                usernameExists
         );
 
-        assertEquals("John.Smith", username);
+        assertEquals("John.Smith", result);
     }
 
     @Test
-    void generateShouldAddSerialNumberWhenUsernameAlreadyExists() {
-        User user1 = user("John", "Smith", "John.Smith");
-        User user2 = user("John", "Smith", "John.Smith1");
-
-        String username = usernameGenerator.generate(
-                "John",
-                "Smith",
-                List.of(user1, user2)
+    void generateShouldAddSuffixOneWhenBaseUsernameExists() {
+        Set<String> existingUsernames = Set.of(
+                "John.Smith"
         );
 
-        assertEquals("John.Smith2", username);
+        String result = usernameGenerator.generate(
+                "John",
+                "Smith",
+                existingUsernames::contains
+        );
+
+        assertEquals("John.Smith1", result);
     }
 
-    private User user(String firstName, String lastName, String username) {
-        User user = new User();
-        user.setFirstName(firstName);
-        user.setLastName(lastName);
-        user.setUsername(username);
-        return user;
+    @Test
+    void generateShouldFindNextAvailableSuffixWhenSeveralUsernamesExist() {
+        Set<String> existingUsernames = Set.of(
+                "John.Smith",
+                "John.Smith1",
+                "John.Smith2",
+                "John.Smith3"
+        );
+
+        String result = usernameGenerator.generate(
+                "John",
+                "Smith",
+                existingUsernames::contains
+        );
+
+        assertEquals("John.Smith4", result);
+    }
+
+    @Test
+    void generateShouldReturnFirstFreeSuffixWhenThereIsGap() {
+        Set<String> existingUsernames = Set.of(
+                "John.Smith",
+                "John.Smith1",
+                "John.Smith3"
+        );
+
+        String result = usernameGenerator.generate(
+                "John",
+                "Smith",
+                existingUsernames::contains
+        );
+
+        assertEquals("John.Smith2", result);
     }
 }

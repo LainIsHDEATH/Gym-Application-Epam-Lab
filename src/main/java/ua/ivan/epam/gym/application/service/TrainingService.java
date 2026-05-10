@@ -1,97 +1,112 @@
 package ua.ivan.epam.gym.application.service;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import ua.ivan.epam.gym.application.dao.*;
+import org.springframework.transaction.annotation.Transactional;
+import ua.ivan.epam.gym.application.dto.CreateTrainingRequest;
+import ua.ivan.epam.gym.application.dto.GetTraineeTrainingsRequest;
+import ua.ivan.epam.gym.application.dto.GetTrainerTrainingsRequest;
 import ua.ivan.epam.gym.application.model.Trainee;
 import ua.ivan.epam.gym.application.model.Trainer;
 import ua.ivan.epam.gym.application.model.Training;
 import ua.ivan.epam.gym.application.model.TrainingType;
+import ua.ivan.epam.gym.application.repository.*;
 
-import java.time.LocalDate;
 import java.util.List;
 
 @Service
+@RequiredArgsConstructor
+@Slf4j
 public class TrainingService {
-    private static final Logger log = LoggerFactory.getLogger(TrainingService.class);
 
-    private final CrudDao<Long, Training> trainingDao;
-    private final CrudDao<Long, Trainee> traineeDao;
-    private final CrudDao<Long, Trainer> trainerDao;
-    private final CrudDao<Long, TrainingType> trainingTypeDao;
+    private final TrainingRepository trainingRepository;
+    private final TraineeRepository traineeRepository;
+    private final TrainerRepository trainerRepository;
+    private final TrainingTypeRepository trainingTypeRepository;
 
-    @Autowired
-    public TrainingService(CrudDao<Long, Training> trainingDao,
-                           CrudDao<Long, Trainee> traineeDao,
-                           CrudDao<Long, Trainer> trainerDao,
-                           CrudDao<Long, TrainingType> trainingTypeDao) {
-        this.trainingDao = trainingDao;
-        this.traineeDao = traineeDao;
-        this.trainerDao = trainerDao;
-        this.trainingTypeDao = trainingTypeDao;
-    }
-
-    public Training create(Long traineeId,
-                           Long trainerId,
-                           String name,
-                           Long trainingTypeId,
-                           LocalDate date,
-                           int duration) {
+    @Transactional
+    public Training create(CreateTrainingRequest request) {
 
         log.info("Creating training. traineeId={}, trainerId={}, trainingTypeId={}, name={}",
-                traineeId, trainerId, trainingTypeId, name);
+                request.traineeId(), request.trainerId(), request.trainingTypeId(), request.trainingName());
 
-        traineeDao.findById(traineeId)
+        Trainee trainee = traineeRepository.findById(request.traineeId())
                 .orElseThrow(() -> {
-                    log.warn("Cannot create training. Trainee not found. traineeId={}", traineeId);
+                    log.warn("Cannot create training. Trainee not found. traineeId={}", request.traineeId());
                     return new RuntimeException("Trainee not found");
                 });
 
-        trainerDao.findById(trainerId)
+        Trainer trainer = trainerRepository.findById(request.trainerId())
                 .orElseThrow(() -> {
-                    log.warn("Cannot create training. Trainer not found. trainerId={}", trainerId);
+                    log.warn("Cannot create training. Trainer not found. trainerId={}", request.trainerId());
                     return new RuntimeException("Trainer not found");
                 });
 
-        trainingTypeDao.findById(trainingTypeId)
+        TrainingType trainingType = trainingTypeRepository.findById(request.trainingTypeId())
                 .orElseThrow(() -> {
-                    log.warn("Cannot create training. Training type not found. trainingTypeId={}", trainingTypeId);
+                    log.warn("Cannot create training. Training type not found. trainingTypeId={}", request.trainingTypeId());
                     return new RuntimeException("Training type not found");
                 });
 
 
-        Training training = new Training();
-        training.setTraineeId(traineeId);
-        training.setTrainerId(trainerId);
-        training.setTrainingName(name);
-        training.setTrainingTypeId(trainingTypeId);
-        training.setTrainingDate(date);
-        training.setTrainingDuration(duration);
-        Training savedTraining = trainingDao.save(training);
+        Training training = Training.builder()
+                .trainee(trainee)
+                .trainer(trainer)
+                .trainingName(request.trainingName())
+                .trainingType(trainingType)
+                .trainingDate(request.trainingDate())
+                .trainingDuration(request.trainingDuration())
+                .build();
+
+        trainee.addTrainer(trainer);
+
+        Training savedTraining = trainingRepository.save(training);
 
         log.info("Created training. trainingId={}, traineeId={}, trainerId={}",
-                savedTraining.getId(), savedTraining.getTraineeId(), savedTraining.getTrainerId());
+                savedTraining.getId(), savedTraining.getTrainee().getId(), savedTraining.getTrainer().getId());
 
         return savedTraining;
     }
 
+    @Transactional(readOnly = true)
     public Training get(Long id) {
         log.debug("Searching training by id={}", id);
 
-        return trainingDao.findById(id)
+        return trainingRepository.findById(id)
                 .orElseThrow(() -> {
                     log.warn("Training not found. id={}", id);
                     return new RuntimeException("Training not found");
                 });
     }
 
+    @Transactional(readOnly = true)
     public List<Training> getAll() {
-        List<Training> trainings = trainingDao.findAll();
+        List<Training> trainings = trainingRepository.findAll();
 
         log.debug("Loaded all trainings. count={}", trainings.size());
 
         return trainings;
+    }
+
+    @Transactional(readOnly = true)
+    public List<Training> getTraineeTrainings(GetTraineeTrainingsRequest request) {
+        return trainingRepository.findTraineeTrainingsByCriteria(
+                request.traineeUsername(),
+                request.fromDate(),
+                request.toDate(),
+                request.trainerName(),
+                request.trainingTypeId()
+        );
+    }
+
+    @Transactional(readOnly = true)
+    public List<Training> getTrainerTrainings(GetTrainerTrainingsRequest request) {
+        return trainingRepository.findTrainerTrainingsByCriteria(
+                request.trainerUsername(),
+                request.fromDate(),
+                request.toDate(),
+                request.traineeName()
+        );
     }
 }
