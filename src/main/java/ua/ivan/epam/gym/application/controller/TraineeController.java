@@ -6,16 +6,12 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import ua.ivan.epam.gym.application.dto.request.ChangeActiveStatusRequest;
-import ua.ivan.epam.gym.application.dto.request.RegisterTraineeProfileRequest;
-import ua.ivan.epam.gym.application.dto.request.UpdateTraineeProfileRequest;
-import ua.ivan.epam.gym.application.dto.request.UpdateTraineeTrainersRequest;
+import ua.ivan.epam.gym.application.authentication.RequireAuth;
+import ua.ivan.epam.gym.application.dto.request.*;
 import ua.ivan.epam.gym.application.dto.response.*;
-import ua.ivan.epam.gym.application.mapper.RestResponseMapper;
-import ua.ivan.epam.gym.application.model.Trainee;
-import ua.ivan.epam.gym.application.model.Trainer;
-import ua.ivan.epam.gym.application.model.Training;
-import ua.ivan.epam.gym.application.facade.GymFacade;
+import ua.ivan.epam.gym.application.service.TraineeService;
+import ua.ivan.epam.gym.application.service.TrainerService;
+import ua.ivan.epam.gym.application.service.TrainingService;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -26,128 +22,62 @@ import java.util.List;
 @Api(tags = "Trainees")
 public class TraineeController {
 
-    private final GymFacade gymFacade;
-    private final RestResponseMapper mapper;
+    private final TraineeService traineeService;
+    private final TrainerService trainerService;
+    private final TrainingService trainingService;
 
     @PostMapping
     @ApiOperation("Create trainee profile")
     public ResponseEntity<RegistrationResponse> createTrainee(
             @Valid @RequestBody RegisterTraineeProfileRequest request
     ) {
-        Trainee trainee = gymFacade.createTrainee(request);
-
-        return ResponseEntity.ok(
-                mapper.toRegistrationResponse(trainee.getUser())
-        );
+        return ResponseEntity.ok(traineeService.register(request));
     }
 
+    @RequireAuth
     @GetMapping("/{username}")
     @ApiOperation("Get trainee profile by username")
-    public ResponseEntity<TraineeProfileResponse> getTraineeProfile(
-            @PathVariable String username,
-            @RequestHeader("X-Username") String authUsername,
-            @RequestHeader("X-Password") String authPassword
-    ) {
-        Trainee trainee = gymFacade.getTraineeProfile(
-                username,
-                authUsername,
-                authPassword
-        );
-
-        return ResponseEntity.ok(
-                mapper.toTraineeProfileResponse(trainee)
-        );
+    public ResponseEntity<TraineeProfileResponse> getTraineeProfile(@PathVariable String username) {
+        return ResponseEntity.ok(traineeService.getProfileByUsername(username));
     }
 
+    @RequireAuth
     @PutMapping
     @ApiOperation("Update trainee profile")
     public ResponseEntity<TraineeProfileResponse> updateTraineeProfile(
-            @Valid @RequestBody UpdateTraineeProfileRequest request,
-            @RequestHeader("X-Username") String authUsername,
-            @RequestHeader("X-Password") String authPassword
+            @Valid @RequestBody UpdateTraineeProfileRequest request
     ) {
-        Trainee trainee = gymFacade.updateTraineeProfile(
-                request,
-                authUsername,
-                authPassword
-        );
-
-        return ResponseEntity.ok(
-                mapper.toTraineeProfileResponse(trainee)
-        );
+        return ResponseEntity.ok(traineeService.update(request));
     }
 
+    @RequireAuth
     @DeleteMapping("/{username}")
     @ApiOperation("Delete trainee profile by username")
-    public ResponseEntity<Void> deleteTraineeProfile(
-            @PathVariable String username,
-            @RequestHeader("X-Username") String authUsername,
-            @RequestHeader("X-Password") String authPassword
-    ) {
-        gymFacade.deleteTraineeByUsername(
-                username,
-                authUsername,
-                authPassword
-        );
+    public ResponseEntity<Void> deleteTraineeProfile(@PathVariable String username) {
+        traineeService.deleteByUsername(username);
 
         return ResponseEntity.ok().build();
     }
 
-    @PatchMapping("/status")
-    @ApiOperation("Activate or de-activate trainee profile")
-    public ResponseEntity<Void> changeTraineeStatus(
-            @Valid @RequestBody ChangeActiveStatusRequest request,
-            @RequestHeader("X-Username") String authUsername,
-            @RequestHeader("X-Password") String authPassword
-    ) {
-        gymFacade.changeTraineeActiveStatus(
-                request.username(),
-                request.isActive(),
-                authUsername,
-                authPassword
-        );
-
-        return ResponseEntity.ok().build();
-    }
-
+    @RequireAuth
     @GetMapping("/{username}/not-assigned-trainers")
     @ApiOperation("Get active trainers not assigned to trainee")
     public ResponseEntity<List<TrainerShortResponse>> getActiveTrainersNotAssignedToTrainee(
-            @PathVariable String username,
-            @RequestHeader("X-Username") String authUsername,
-            @RequestHeader("X-Password") String authPassword
+            @PathVariable String username
     ) {
-        List<Trainer> trainers = gymFacade.getActiveTrainersNotAssignedToTrainee(
-                username,
-                authUsername,
-                authPassword
-        );
-
-        return ResponseEntity.ok(
-                trainers.stream()
-                        .map(mapper::toTrainerShortResponse)
-                        .toList()
-        );
+        return ResponseEntity.ok(trainerService.getTrainersNotAssignedToTrainee(username));
     }
 
+    @RequireAuth
     @PutMapping("/trainers")
     @ApiOperation("Update trainee trainers list")
-    public ResponseEntity<UpdateTraineeTrainersResponse> updateTraineeTrainersList(
-            @Valid @RequestBody UpdateTraineeTrainersRequest request,
-            @RequestHeader("X-Username") String authUsername,
-            @RequestHeader("X-Password") String authPassword
-    ) {
-        Trainee trainee = gymFacade.updateTraineeTrainersList(
-                request,
-                authUsername,
-                authPassword
-        );
-
-        return ResponseEntity.ok(
-                mapper.toUpdateTraineeTrainersResponse(trainee)
-        );
+    public ResponseEntity<List<TrainerShortResponse>> updateTraineeTrainersList(
+            @Valid @RequestBody UpdateTraineeTrainersRequest request
+) {
+        return ResponseEntity.ok(traineeService.updateTrainersList(request));
     }
 
+    @RequireAuth
     @GetMapping("/{username}/trainings")
     @ApiOperation("Get trainee trainings list by criteria")
     public ResponseEntity<List<TraineeTrainingResponse>> getTraineeTrainings(
@@ -155,24 +85,23 @@ public class TraineeController {
             @RequestParam(required = false) LocalDate periodFrom,
             @RequestParam(required = false) LocalDate periodTo,
             @RequestParam(required = false) String trainerName,
-            @RequestParam(required = false) Long trainingTypeId,
-            @RequestHeader("X-Username") String authUsername,
-            @RequestHeader("X-Password") String authPassword
+            @RequestParam(required = false) String trainingTypeName
     ) {
-        List<Training> trainings = gymFacade.getTraineeTrainings(
+        return ResponseEntity.ok(trainingService.getTraineeTrainings(
                 username,
                 periodFrom,
                 periodTo,
                 trainerName,
-                trainingTypeId,
-                authUsername,
-                authPassword
-        );
+                trainingTypeName
+        ));
+    }
 
-        return ResponseEntity.ok(
-                trainings.stream()
-                        .map(mapper::toTraineeTrainingResponse)
-                        .toList()
-        );
+    @RequireAuth
+    @PatchMapping("/status")
+    @ApiOperation("Activate or de-activate trainee profile")
+    public ResponseEntity<Void> changeTraineeStatus(@Valid @RequestBody ChangeActiveStatusRequest request) {
+        traineeService.changeActiveStatus(request);
+
+        return ResponseEntity.ok().build();
     }
 }

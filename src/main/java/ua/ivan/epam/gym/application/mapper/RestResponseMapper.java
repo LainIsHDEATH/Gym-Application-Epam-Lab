@@ -3,7 +3,6 @@ package ua.ivan.epam.gym.application.mapper;
 import org.springframework.stereotype.Component;
 import ua.ivan.epam.gym.application.dto.response.TrainerShortResponse;
 import ua.ivan.epam.gym.application.dto.response.TrainerTrainingResponse;
-import ua.ivan.epam.gym.application.dto.response.UpdateTraineeTrainersResponse;
 import ua.ivan.epam.gym.application.model.Trainee;
 import ua.ivan.epam.gym.application.model.Trainer;
 import ua.ivan.epam.gym.application.model.Training;
@@ -113,15 +112,5 @@ public class RestResponseMapper {
                 training.getTrainingDuration(),
                 traineeUser.getFirstName() + " " + traineeUser.getLastName()
         );
-    }
-
-    public UpdateTraineeTrainersResponse toUpdateTraineeTrainersResponse(Trainee trainee) {
-        List<TrainerShortResponse> trainers = trainee.getTrainers()
-                .stream()
-                .sorted(Comparator.comparing(t -> t.getUser().getUsername()))
-                .map(this::toTrainerShortResponse)
-                .toList();
-
-        return new UpdateTraineeTrainersResponse(trainers);
     }
 }

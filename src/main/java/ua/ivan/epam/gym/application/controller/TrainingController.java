@@ -6,8 +6,9 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import ua.ivan.epam.gym.application.authentication.RequireAuth;
 import ua.ivan.epam.gym.application.dto.request.AddTrainingRequest;
-import ua.ivan.epam.gym.application.facade.GymFacade;
+import ua.ivan.epam.gym.application.service.TrainingService;
 
 @RestController
 @RequestMapping("/api/v1/trainings")
@@ -15,20 +16,13 @@ import ua.ivan.epam.gym.application.facade.GymFacade;
 @Api(tags = "Trainings")
 public class TrainingController {
 
-    private final GymFacade gymFacade;
+    private final TrainingService trainingService;
 
+    @RequireAuth
     @PostMapping
     @ApiOperation("Add training")
-    public ResponseEntity<Void> addTraining(
-            @Valid @RequestBody AddTrainingRequest request,
-            @RequestHeader("X-Username") String authUsername,
-            @RequestHeader("X-Password") String authPassword
-    ) {
-        gymFacade.addTraining(
-                request,
-                authUsername,
-                authPassword
-        );
+    public ResponseEntity<Void> addTraining(@Valid @RequestBody AddTrainingRequest request) {
+        trainingService.create(request);
 
         return ResponseEntity.ok().build();
     }

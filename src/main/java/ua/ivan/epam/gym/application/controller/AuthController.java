@@ -7,8 +7,10 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import ua.ivan.epam.gym.application.authentication.AuthService;
+import ua.ivan.epam.gym.application.authentication.BasicAuthCredentials;
+import ua.ivan.epam.gym.application.authentication.BasicAuthParser;
 import ua.ivan.epam.gym.application.dto.request.ChangePasswordRequest;
-import ua.ivan.epam.gym.application.facade.GymFacade;
+import ua.ivan.epam.gym.application.service.UserService;
 
 @RestController
 @RequestMapping("/api/v1")
@@ -17,20 +19,22 @@ import ua.ivan.epam.gym.application.facade.GymFacade;
 public class AuthController {
 
     private final AuthService authService;
-    private final GymFacade gymFacade;
+    private final UserService userService;
+    private final BasicAuthParser basicAuthParser;
 
     @GetMapping("/login")
-    @ApiOperation("Login by username and password")
-    public ResponseEntity<Void> login(@RequestParam String username,
-                                      @RequestParam String password) {
-        authService.authenticate(username, password);
+    public ResponseEntity<Void> login(@RequestHeader("Authorization") String authorizationHeader) {
+        BasicAuthCredentials credentials = basicAuthParser.parse(authorizationHeader);
+
+        authService.authenticate(credentials.username(), credentials.password());
+
         return ResponseEntity.ok().build();
     }
 
     @PutMapping("/password")
     @ApiOperation("Change user password")
     public ResponseEntity<Void> changePassword(@Valid @RequestBody ChangePasswordRequest request) {
-        gymFacade.changePassword(request);
+        userService.changePassword(request);
 
         return ResponseEntity.ok().build();
     }

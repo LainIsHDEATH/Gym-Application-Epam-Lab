@@ -5,9 +5,9 @@ import io.swagger.annotations.ApiOperation;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import ua.ivan.epam.gym.application.authentication.RequireAuth;
 import ua.ivan.epam.gym.application.dto.response.TrainingTypeResponse;
-import ua.ivan.epam.gym.application.facade.GymFacade;
-import ua.ivan.epam.gym.application.mapper.RestResponseMapper;
+import ua.ivan.epam.gym.application.service.TrainingTypeService;
 
 import java.util.List;
 
@@ -17,20 +17,12 @@ import java.util.List;
 @Api(tags = "Training Types")
 public class TrainingTypeController {
 
-    private final GymFacade gymFacade;
-    private final RestResponseMapper mapper;
+    private final TrainingTypeService trainingTypeService;
 
+    @RequireAuth
     @GetMapping
     @ApiOperation("Get training types")
-    public ResponseEntity<List<TrainingTypeResponse>> getTrainingTypes(
-            @RequestHeader("X-Username") String authUsername,
-            @RequestHeader("X-Password") String authPassword
-    ) {
-        return ResponseEntity.ok(
-                gymFacade.getTrainingTypes(authUsername, authPassword)
-                        .stream()
-                        .map(mapper::toTrainingTypeResponse)
-                        .toList()
-        );
+    public ResponseEntity<List<TrainingTypeResponse>> getTrainingTypes() {
+        return ResponseEntity.ok(trainingTypeService.getAll());
     }
 }

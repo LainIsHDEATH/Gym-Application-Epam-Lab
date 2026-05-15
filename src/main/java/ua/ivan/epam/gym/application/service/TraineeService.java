@@ -5,9 +5,14 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import ua.ivan.epam.gym.application.dto.CreateTraineeRequest;
-import ua.ivan.epam.gym.application.dto.UpdateTraineeRequest;
-import ua.ivan.epam.gym.application.dto.UpdateTraineeTrainersRequest;
+import ua.ivan.epam.gym.application.dto.request.ChangeActiveStatusRequest;
+import ua.ivan.epam.gym.application.dto.request.RegisterTraineeProfileRequest;
+import ua.ivan.epam.gym.application.dto.request.UpdateTraineeProfileRequest;
+import ua.ivan.epam.gym.application.dto.request.UpdateTraineeTrainersRequest;
+import ua.ivan.epam.gym.application.dto.response.RegistrationResponse;
+import ua.ivan.epam.gym.application.dto.response.TraineeProfileResponse;
+import ua.ivan.epam.gym.application.dto.response.TrainerShortResponse;
+import ua.ivan.epam.gym.application.mapper.RestResponseMapper;
 import ua.ivan.epam.gym.application.model.Trainee;
 import ua.ivan.epam.gym.application.model.Trainer;
 import ua.ivan.epam.gym.application.model.User;
@@ -19,6 +24,7 @@ import ua.ivan.epam.gym.application.utils.UsernameGenerator;
 
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 @Service
@@ -32,11 +38,11 @@ public class TraineeService {
     private final PasswordGenerator passwordGenerator;
     private final TrainerRepository trainerRepository;
 
-    @Transactional
-    public Trainee create(CreateTraineeRequest request) {
-        log.info("Creating trainee profile for {} {}", request.firstName(), request.lastName());
+    private final RestResponseMapper mapper;
 
-        List<User> users = userRepository.findAll();
+    @Transactional
+    public RegistrationResponse register(RegisterTraineeProfileRequest request) {
+        log.info("Creating trainee profile for {} {}", request.firstName(), request.lastName());
 
         String username = usernameGenerator.generate(
                 request.firstName(),
@@ -65,7 +71,19 @@ public class TraineeService {
         log.info("Created trainee profile. traineeId={}, userId={}, username={}",
                 savedTrainee.getId(), savedUser.getId(), savedUser.getUsername());
 
-        return savedTrainee;
+        return mapper.toRegistrationResponse(savedTrainee.getUser());
+    }
+
+    @Transactional(readOnly = true)
+    public TraineeProfileResponse getProfileByUsername(String username) {
+        log.debug("Searching trainee profile by username={}", username);
+
+        return traineeRepository.findByUsername(username)
+                .map(mapper::toTraineeProfileResponse)
+                .orElseThrow(() -> {
+                    log.warn("Trainee not found. username={}", username);
+                    return new EntityNotFoundException("Trainee not found");
+                });
     }
 
     @Transactional(readOnly = true)
@@ -91,26 +109,26 @@ public class TraineeService {
     }
 
     @Transactional
-    public Trainee update(UpdateTraineeRequest request) {
-        log.info("Updating trainee profile. traineeId={}", request.traineeId());
+    public TraineeProfileResponse update(UpdateTraineeProfileRequest request) {
+        log.info("Updating trainee profile. trainee username={}", request.username());
 
-        Trainee trainee = traineeRepository.findById(request.traineeId())
+        Trainee trainee = traineeRepository.findByUsername(request.username())
+                .map(t -> {
+                    Optional.ofNullable(request.dateOfBirth()).ifPresent(t::setDateOfBirth);
+                    Optional.ofNullable(request.address()).ifPresent(t::setAddress);
+                    Optional.ofNullable(request.firstName()).ifPresent(t.getUser()::setFirstName);
+                    Optional.ofNullable(request.lastName()).ifPresent(t.getUser()::setLastName);
+                    Optional.ofNullable(request.isActive()).ifPresent(t.getUser()::setIsActive);
+                    return t;
+                })
                 .orElseThrow(() -> {
-                    log.warn("Cannot update trainee. Trainee not found. traineeId={}", request.traineeId());
+                    log.warn("Cannot update trainee. Trainee not found. username={}", request.username());
                     return new EntityNotFoundException("Trainee not found");
                 });
 
-        if (request.dateOfBirth() != null) {
-            trainee.setDateOfBirth(request.dateOfBirth());
-        }
-
-        if (request.address() != null) {
-            trainee.setAddress(request.address());
-        }
-
         log.info("Updated trainee profile. traineeId={}", trainee.getId());
 
-        return trainee;
+        return mapper.toTraineeProfileResponse(trainee);
     }
 
     @Transactional
@@ -138,43 +156,25 @@ public class TraineeService {
     }
 
     @Transactional
-    public Trainee changeActiveStatus(Long traineeId) {
-        log.info("Changing trainee profile status. traineeId={}", traineeId);
+    public void changeActiveStatus(ChangeActiveStatusRequest request) {
+        log.info("Changing trainee profile status. trainee username={}", request.username());
 
-        Trainee trainee = traineeRepository.findById(traineeId)
+        Trainee trainee = traineeRepository.findByUsername(request.username())
                 .orElseThrow(() -> {
-                    log.warn("Cannot change trainee status. Trainee not found. id={}", traineeId);
-                    return new EntityNotFoundException("Trainee not found. id=" + traineeId);
+                    log.warn("Cannot change trainee status. Trainee not found. username={}", request.username());
+                    return new EntityNotFoundException("Trainee not found. username=" + request.username());
                 });
 
         User user = trainee.getUser();
 
-        boolean currentStatus = user.getIsActive();
-
-        user.setIsActive(!currentStatus);
+        user.setIsActive(request.isActive());
 
         log.info("Changed trainee profile status. traineeId={}, newStatus={}",
                 trainee.getId(), user.getIsActive());
-
-        return trainee;
     }
 
     @Transactional
-    public void changePassword(String username, String oldPassword, String newPassword) {
-        Trainee trainee = getByUsername(username);
-        User user = trainee.getUser();
-
-        if (!oldPassword.equals(user.getPassword())) {
-            log.warn("Cannot change trainee password. Old password is incorrect. username={}", username);
-            throw new IllegalArgumentException("Old password is incorrect");
-        }
-        user.setPassword(newPassword);
-
-        log.info("Changed trainee password. username={}", username);
-    }
-
-    @Transactional
-    public Trainee updateTrainersList(UpdateTraineeTrainersRequest request) {
+    public List<TrainerShortResponse> updateTrainersList(UpdateTraineeTrainersRequest request) {
         Trainee trainee = traineeRepository.findByUsername(request.traineeUsername())
                 .orElseThrow(() -> {
                     log.warn("Trainee not found. username={}", request.traineeUsername());
@@ -202,6 +202,9 @@ public class TraineeService {
         log.info("Updated trainee trainers list. traineeUsername={}, trainersCount={}",
                 request.traineeUsername(), newTrainers.size());
 
-        return trainee;
+        return trainee.getTrainers()
+                .stream()
+                .map(mapper::toTrainerShortResponse)
+                .toList();
     }
 }

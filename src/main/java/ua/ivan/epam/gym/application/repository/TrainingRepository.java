@@ -89,7 +89,7 @@ public class TrainingRepository implements CrudRepo<Long, Training> {
                                                          LocalDate fromDate,
                                                          LocalDate toDate,
                                                          String trainerName,
-                                                         Long trainingTypeId) {
+                                                         String trainingTypeName) {
         var cb = em.getCriteriaBuilder();
         var cq = cb.createQuery(Training.class);
 
@@ -129,8 +129,8 @@ public class TrainingRepository implements CrudRepo<Long, Training> {
             ));
         }
 
-        if (trainingTypeId != null) {
-            predicates.add(cb.equal(trainingType.get("id"), trainingTypeId));
+        if (trainingTypeName != null && !trainingTypeName.isBlank()) {
+            predicates.add(cb.equal(trainingType.get("trainingTypeName"), trainingTypeName.trim()));
         }
 
         cq.select(training)
