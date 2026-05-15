@@ -10,6 +10,7 @@ import org.springframework.context.support.PropertySourcesPlaceholderConfigurer;
         PersistenceConfig.class,
         ValidationConfig.class
 })
+@EnableAspectJAutoProxy
 public class AppConfig {
 
     @Bean
