@@ -1,4 +1,4 @@
-package ua.ivan.epam.gym.application.authentication;
+package ua.ivan.epam.gym.application.exception.exceptions;
 
 public class AuthenticationException extends RuntimeException {
 
