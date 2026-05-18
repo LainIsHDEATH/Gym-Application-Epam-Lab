@@ -33,10 +33,10 @@ import java.util.Set;
 public class TraineeService {
 
     private final TraineeRepository traineeRepository;
+    private final TrainerRepository trainerRepository;
     private final UserRepository userRepository;
     private final UsernameGenerator usernameGenerator;
     private final PasswordGenerator passwordGenerator;
-    private final TrainerRepository trainerRepository;
 
     private final RestResponseMapper mapper;
 

@@ -106,9 +106,11 @@ public class TrainerService {
         log.debug("Searching trainer by username={}", username);
 
         return trainerRepository.findByUsername(username)
-                .orElseThrow(() -> new EntityNotFoundException(
-                        "Trainer not found. username=" + username
-                ));
+                .orElseThrow(() -> {
+                    log.warn("Trainer not found. username={}", username);
+                    return new EntityNotFoundException("Trainer not found. username=" + username);
+                });
+
     }
 
     @Transactional

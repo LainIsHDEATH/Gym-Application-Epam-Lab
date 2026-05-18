@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.*;
 import ua.ivan.epam.gym.application.authentication.AuthService;
 import ua.ivan.epam.gym.application.authentication.BasicAuthCredentials;
 import ua.ivan.epam.gym.application.authentication.BasicAuthParser;
+import ua.ivan.epam.gym.application.authentication.RequireAuth;
 import ua.ivan.epam.gym.application.dto.request.ChangePasswordRequest;
 import ua.ivan.epam.gym.application.service.UserService;
 
@@ -31,6 +32,7 @@ public class AuthController {
         return ResponseEntity.ok().build();
     }
 
+    @RequireAuth
     @PutMapping("/password")
     @ApiOperation("Change user password")
     public ResponseEntity<Void> changePassword(@Valid @RequestBody ChangePasswordRequest request) {

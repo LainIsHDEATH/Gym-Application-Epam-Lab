@@ -1,5 +1,6 @@
 package ua.ivan.epam.gym.application.service;
 
+import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -38,19 +39,19 @@ public class TrainingService {
         Trainee trainee = traineeRepository.findByUsername(request.traineeUsername())
                 .orElseThrow(() -> {
                     log.warn("Cannot create training. Trainee not found. trainee username={}", request.traineeUsername());
-                    return new RuntimeException("Trainee not found");
+                    return new EntityNotFoundException("Trainee not found");
                 });
 
         Trainer trainer = trainerRepository.findByUsername(request.trainerUsername())
                 .orElseThrow(() -> {
                     log.warn("Cannot create training. Trainer not found. trainer username={}", request.trainerUsername());
-                    return new RuntimeException("Trainer not found");
+                    return new EntityNotFoundException("Trainer not found");
                 });
 
         TrainingType trainingType = trainingTypeRepository.findByName(request.trainingTypeName())
                 .orElseThrow(() -> {
                     log.warn("Cannot create training. Training type not found. training name={}", request.trainingName());
-                    return new RuntimeException("Training type not found");
+                    return new EntityNotFoundException("Training type not found");
                 });
 
 
@@ -80,7 +81,7 @@ public class TrainingService {
         return trainingRepository.findById(id)
                 .orElseThrow(() -> {
                     log.warn("Training not found. id={}", id);
-                    return new RuntimeException("Training not found");
+                    return new EntityNotFoundException("Training not found");
                 });
     }
 
