@@ -1,13 +1,16 @@
 package ua.ivan.epam.gym.application.service;
 
+import jakarta.persistence.EntityNotFoundException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import ua.ivan.epam.gym.application.dto.CreateTrainingRequest;
-import ua.ivan.epam.gym.application.dto.GetTraineeTrainingsRequest;
-import ua.ivan.epam.gym.application.dto.GetTrainerTrainingsRequest;
+import ua.ivan.epam.gym.application.dto.request.AddTrainingRequest;
+import ua.ivan.epam.gym.application.dto.response.TraineeTrainingResponse;
+import ua.ivan.epam.gym.application.dto.response.TrainerTrainingResponse;
+import ua.ivan.epam.gym.application.dto.response.TrainingTypeResponse;
+import ua.ivan.epam.gym.application.mapper.TrainingMapper;
 import ua.ivan.epam.gym.application.model.Trainee;
 import ua.ivan.epam.gym.application.model.Trainer;
 import ua.ivan.epam.gym.application.model.Training;
@@ -16,14 +19,13 @@ import ua.ivan.epam.gym.application.model.User;
 import ua.ivan.epam.gym.application.repository.TraineeRepository;
 import ua.ivan.epam.gym.application.repository.TrainerRepository;
 import ua.ivan.epam.gym.application.repository.TrainingRepository;
-import ua.ivan.epam.gym.application.repository.TrainingTypeRepository;
 
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -39,31 +41,32 @@ class TrainingServiceTest {
     private TrainerRepository trainerRepository;
 
     @Mock
-    private TrainingTypeRepository trainingTypeRepository;
+    private TrainingMapper trainingMapper;
 
     @InjectMocks
     private TrainingService trainingService;
 
     @Test
-    void createShouldCreateTrainingWhenReferencesExist() {
-        LocalDate date = LocalDate.of(2026, 4, 24);
+    void createShouldCreateTrainingWhenTraineeAndTrainerExist() {
+        LocalDate date = LocalDate.of(2026, 5, 5);
 
-        CreateTrainingRequest request = new CreateTrainingRequest(
-                1L,
-                2L,
+        AddTrainingRequest request = new AddTrainingRequest(
+                "John.Smith",
+                "Mike.Brown",
                 "Morning Cardio",
-                3L,
                 date,
                 60
         );
 
         Trainee trainee = createTrainee(1L, "John.Smith");
-        Trainer trainer = createTrainer(2L, "Mike.Brown");
-        TrainingType trainingType = createTrainingType(3L, "Cardio");
+        Trainer trainer = createTrainer(2L, "Mike.Brown", 3L, "Cardio");
+        TrainingType expectedTrainingType = trainer.getSpecialization();
 
-        when(traineeRepository.findById(1L)).thenReturn(Optional.of(trainee));
-        when(trainerRepository.findById(2L)).thenReturn(Optional.of(trainer));
-        when(trainingTypeRepository.findById(3L)).thenReturn(Optional.of(trainingType));
+        when(traineeRepository.findByUsername("John.Smith"))
+                .thenReturn(Optional.of(trainee));
+
+        when(trainerRepository.findByUsername("Mike.Brown"))
+                .thenReturn(Optional.of(trainer));
 
         when(trainingRepository.save(any(Training.class))).thenAnswer(invocation -> {
             Training training = invocation.getArgument(0);
@@ -76,7 +79,7 @@ class TrainingServiceTest {
         assertEquals(10L, result.getId());
         assertSame(trainee, result.getTrainee());
         assertSame(trainer, result.getTrainer());
-        assertSame(trainingType, result.getTrainingType());
+        assertSame(expectedTrainingType, result.getTrainingType());
         assertEquals("Morning Cardio", result.getTrainingName());
         assertEquals(date, result.getTrainingDate());
         assertEquals(60, result.getTrainingDuration());
@@ -84,39 +87,75 @@ class TrainingServiceTest {
         assertTrue(trainee.getTrainers().contains(trainer));
         assertTrue(trainer.getTrainees().contains(trainee));
 
-        verify(traineeRepository).findById(1L);
-        verify(trainerRepository).findById(2L);
-        verify(trainingTypeRepository).findById(3L);
+        verify(traineeRepository).findByUsername("John.Smith");
+        verify(trainerRepository).findByUsername("Mike.Brown");
+        verify(trainingRepository).save(any(Training.class));
+    }
+
+    @Test
+    void createShouldUseTrainerSpecializationAsTrainingType() {
+        AddTrainingRequest request = new AddTrainingRequest(
+                "John.Smith",
+                "Mike.Brown",
+                "Morning Cardio",
+                LocalDate.of(2026, 5, 5),
+                60
+        );
+
+        Trainee trainee = createTrainee(1L, "John.Smith");
+        Trainer trainer = createTrainer(2L, "Mike.Brown", 3L, "Cardio");
+
+        when(traineeRepository.findByUsername("John.Smith"))
+                .thenReturn(Optional.of(trainee));
+
+        when(trainerRepository.findByUsername("Mike.Brown"))
+                .thenReturn(Optional.of(trainer));
+
+        when(trainingRepository.save(any(Training.class))).thenAnswer(invocation -> {
+            Training training = invocation.getArgument(0);
+
+            assertSame(trainer.getSpecialization(), training.getTrainingType());
+            assertEquals(3L, training.getTrainingType().getId());
+            assertEquals("Cardio", training.getTrainingType().getTrainingTypeName());
+
+            training.setId(10L);
+            return training;
+        });
+
+        Training result = trainingService.create(request);
+
+        assertEquals(10L, result.getId());
+
         verify(trainingRepository).save(any(Training.class));
     }
 
     @Test
     void createShouldPassCorrectTrainingToRepositorySave() {
-        LocalDate date = LocalDate.of(2026, 4, 24);
+        LocalDate date = LocalDate.of(2026, 5, 5);
 
-        CreateTrainingRequest request = new CreateTrainingRequest(
-                1L,
-                2L,
+        AddTrainingRequest request = new AddTrainingRequest(
+                "John.Smith",
+                "Mike.Brown",
                 "Morning Cardio",
-                3L,
                 date,
                 60
         );
 
         Trainee trainee = createTrainee(1L, "John.Smith");
-        Trainer trainer = createTrainer(2L, "Mike.Brown");
-        TrainingType trainingType = createTrainingType(3L, "Cardio");
+        Trainer trainer = createTrainer(2L, "Mike.Brown", 3L, "Cardio");
 
-        when(traineeRepository.findById(1L)).thenReturn(Optional.of(trainee));
-        when(trainerRepository.findById(2L)).thenReturn(Optional.of(trainer));
-        when(trainingTypeRepository.findById(3L)).thenReturn(Optional.of(trainingType));
+        when(traineeRepository.findByUsername("John.Smith"))
+                .thenReturn(Optional.of(trainee));
+
+        when(trainerRepository.findByUsername("Mike.Brown"))
+                .thenReturn(Optional.of(trainer));
 
         when(trainingRepository.save(any(Training.class))).thenAnswer(invocation -> {
             Training training = invocation.getArgument(0);
 
             assertSame(trainee, training.getTrainee());
             assertSame(trainer, training.getTrainer());
-            assertSame(trainingType, training.getTrainingType());
+            assertSame(trainer.getSpecialization(), training.getTrainingType());
             assertEquals("Morning Cardio", training.getTrainingName());
             assertEquals(date, training.getTrainingDate());
             assertEquals(60, training.getTrainingDuration());
@@ -134,24 +173,24 @@ class TrainingServiceTest {
 
     @Test
     void createShouldNotDuplicateTrainerAssignmentWhenAlreadyAssigned() {
-        CreateTrainingRequest request = new CreateTrainingRequest(
-                1L,
-                2L,
+        AddTrainingRequest request = new AddTrainingRequest(
+                "John.Smith",
+                "Mike.Brown",
                 "Morning Cardio",
-                3L,
-                LocalDate.of(2026, 4, 24),
+                LocalDate.of(2026, 5, 5),
                 60
         );
 
         Trainee trainee = createTrainee(1L, "John.Smith");
-        Trainer trainer = createTrainer(2L, "Mike.Brown");
-        TrainingType trainingType = createTrainingType(3L, "Cardio");
+        Trainer trainer = createTrainer(2L, "Mike.Brown", 3L, "Cardio");
 
         trainee.addTrainer(trainer);
 
-        when(traineeRepository.findById(1L)).thenReturn(Optional.of(trainee));
-        when(trainerRepository.findById(2L)).thenReturn(Optional.of(trainer));
-        when(trainingTypeRepository.findById(3L)).thenReturn(Optional.of(trainingType));
+        when(traineeRepository.findByUsername("John.Smith"))
+                .thenReturn(Optional.of(trainee));
+
+        when(trainerRepository.findByUsername("Mike.Brown"))
+                .thenReturn(Optional.of(trainer));
 
         when(trainingRepository.save(any(Training.class))).thenAnswer(invocation -> {
             Training training = invocation.getArgument(0);
@@ -172,87 +211,56 @@ class TrainingServiceTest {
 
     @Test
     void createShouldThrowExceptionWhenTraineeDoesNotExist() {
-        CreateTrainingRequest request = new CreateTrainingRequest(
-                99L,
-                2L,
+        AddTrainingRequest request = new AddTrainingRequest(
+                "Unknown.Trainee",
+                "Mike.Brown",
                 "Training",
-                3L,
                 LocalDate.now(),
                 60
         );
 
-        when(traineeRepository.findById(99L)).thenReturn(Optional.empty());
+        when(traineeRepository.findByUsername("Unknown.Trainee"))
+                .thenReturn(Optional.empty());
 
-        RuntimeException exception = assertThrows(
-                RuntimeException.class,
+        EntityNotFoundException exception = assertThrows(
+                EntityNotFoundException.class,
                 () -> trainingService.create(request)
         );
 
         assertEquals("Trainee not found", exception.getMessage());
 
-        verify(traineeRepository).findById(99L);
-        verify(trainerRepository, never()).findById(anyLong());
-        verify(trainingTypeRepository, never()).findById(anyLong());
+        verify(traineeRepository).findByUsername("Unknown.Trainee");
+        verify(trainerRepository, never()).findByUsername(anyString());
         verify(trainingRepository, never()).save(any());
     }
 
     @Test
     void createShouldThrowExceptionWhenTrainerDoesNotExist() {
-        CreateTrainingRequest request = new CreateTrainingRequest(
-                1L,
-                99L,
+        AddTrainingRequest request = new AddTrainingRequest(
+                "John.Smith",
+                "Unknown.Trainer",
                 "Training",
-                3L,
                 LocalDate.now(),
                 60
         );
 
         Trainee trainee = createTrainee(1L, "John.Smith");
 
-        when(traineeRepository.findById(1L)).thenReturn(Optional.of(trainee));
-        when(trainerRepository.findById(99L)).thenReturn(Optional.empty());
+        when(traineeRepository.findByUsername("John.Smith"))
+                .thenReturn(Optional.of(trainee));
 
-        RuntimeException exception = assertThrows(
-                RuntimeException.class,
+        when(trainerRepository.findByUsername("Unknown.Trainer"))
+                .thenReturn(Optional.empty());
+
+        EntityNotFoundException exception = assertThrows(
+                EntityNotFoundException.class,
                 () -> trainingService.create(request)
         );
 
         assertEquals("Trainer not found", exception.getMessage());
 
-        verify(traineeRepository).findById(1L);
-        verify(trainerRepository).findById(99L);
-        verify(trainingTypeRepository, never()).findById(anyLong());
-        verify(trainingRepository, never()).save(any());
-    }
-
-    @Test
-    void createShouldThrowExceptionWhenTrainingTypeDoesNotExist() {
-        CreateTrainingRequest request = new CreateTrainingRequest(
-                1L,
-                2L,
-                "Training",
-                99L,
-                LocalDate.now(),
-                60
-        );
-
-        Trainee trainee = createTrainee(1L, "John.Smith");
-        Trainer trainer = createTrainer(2L, "Mike.Brown");
-
-        when(traineeRepository.findById(1L)).thenReturn(Optional.of(trainee));
-        when(trainerRepository.findById(2L)).thenReturn(Optional.of(trainer));
-        when(trainingTypeRepository.findById(99L)).thenReturn(Optional.empty());
-
-        RuntimeException exception = assertThrows(
-                RuntimeException.class,
-                () -> trainingService.create(request)
-        );
-
-        assertEquals("Training type not found", exception.getMessage());
-
-        verify(traineeRepository).findById(1L);
-        verify(trainerRepository).findById(2L);
-        verify(trainingTypeRepository).findById(99L);
+        verify(traineeRepository).findByUsername("John.Smith");
+        verify(trainerRepository).findByUsername("Unknown.Trainer");
         verify(trainingRepository, never()).save(any());
     }
 
@@ -260,7 +268,8 @@ class TrainingServiceTest {
     void getShouldReturnTrainingWhenExists() {
         Training training = createTraining();
 
-        when(trainingRepository.findById(1L)).thenReturn(Optional.of(training));
+        when(trainingRepository.findById(1L))
+                .thenReturn(Optional.of(training));
 
         Training result = trainingService.get(1L);
 
@@ -272,10 +281,11 @@ class TrainingServiceTest {
 
     @Test
     void getShouldThrowExceptionWhenTrainingDoesNotExist() {
-        when(trainingRepository.findById(99L)).thenReturn(Optional.empty());
+        when(trainingRepository.findById(99L))
+                .thenReturn(Optional.empty());
 
-        RuntimeException exception = assertThrows(
-                RuntimeException.class,
+        EntityNotFoundException exception = assertThrows(
+                EntityNotFoundException.class,
                 () -> trainingService.get(99L)
         );
 
@@ -291,14 +301,15 @@ class TrainingServiceTest {
         Training training2 = Training.builder()
                 .id(2L)
                 .trainee(createTrainee(2L, "Trainee.Two"))
-                .trainer(createTrainer(2L, "Trainer.Two"))
+                .trainer(createTrainer(3L, "Trainer.Two", 2L, "Strength"))
                 .trainingType(createTrainingType(2L, "Strength"))
                 .trainingName("Strength Training")
                 .trainingDate(LocalDate.of(2026, 5, 6))
                 .trainingDuration(45)
                 .build();
 
-        when(trainingRepository.findAll()).thenReturn(List.of(training1, training2));
+        when(trainingRepository.findAll())
+                .thenReturn(List.of(training1, training2));
 
         List<Training> result = trainingService.getAll();
 
@@ -311,7 +322,8 @@ class TrainingServiceTest {
 
     @Test
     void getAllShouldReturnEmptyListWhenNoTrainingsExist() {
-        when(trainingRepository.findAll()).thenReturn(List.of());
+        when(trainingRepository.findAll())
+                .thenReturn(List.of());
 
         List<Training> result = trainingService.getAll();
 
@@ -321,49 +333,54 @@ class TrainingServiceTest {
     }
 
     @Test
-    void getTraineeTrainingsShouldDelegateToRepositoryWithCriteria() {
-        GetTraineeTrainingsRequest request = new GetTraineeTrainingsRequest(
-                "John.Smith",
-                LocalDate.of(2026, 5, 1),
-                LocalDate.of(2026, 5, 31),
-                "Mike",
-                1L
-        );
+    void getTraineeTrainingsShouldDelegateToRepositoryAndMapResponses() {
+        LocalDate from = LocalDate.of(2026, 5, 1);
+        LocalDate to = LocalDate.of(2026, 5, 31);
 
         Training training = createTraining();
 
+        TraineeTrainingResponse response = new TraineeTrainingResponse(
+                "Morning Cardio",
+                LocalDate.of(2026, 5, 5),
+                new TrainingTypeResponse(3L, "Cardio"),
+                60,
+                "Mike.Brown"
+        );
+
         when(trainingRepository.findTraineeTrainingsByCriteria(
                 "John.Smith",
-                LocalDate.of(2026, 5, 1),
-                LocalDate.of(2026, 5, 31),
+                from,
+                to,
                 "Mike",
-                1L
+                3L
         )).thenReturn(List.of(training));
 
-        List<Training> result = trainingService.getTraineeTrainings(request);
+        when(trainingMapper.toTraineeTrainingResponse(training))
+                .thenReturn(response);
+
+        List<TraineeTrainingResponse> result = trainingService.getTraineeTrainings(
+                "John.Smith",
+                from,
+                to,
+                "Mike",
+                3L
+        );
 
         assertEquals(1, result.size());
-        assertSame(training, result.getFirst());
+        assertSame(response, result.getFirst());
 
         verify(trainingRepository).findTraineeTrainingsByCriteria(
                 "John.Smith",
-                LocalDate.of(2026, 5, 1),
-                LocalDate.of(2026, 5, 31),
+                from,
+                to,
                 "Mike",
-                1L
+                3L
         );
+        verify(trainingMapper).toTraineeTrainingResponse(training);
     }
 
     @Test
     void getTraineeTrainingsShouldSupportNullOptionalCriteria() {
-        GetTraineeTrainingsRequest request = new GetTraineeTrainingsRequest(
-                "John.Smith",
-                null,
-                null,
-                null,
-                null
-        );
-
         when(trainingRepository.findTraineeTrainingsByCriteria(
                 "John.Smith",
                 null,
@@ -372,7 +389,13 @@ class TrainingServiceTest {
                 null
         )).thenReturn(List.of());
 
-        List<Training> result = trainingService.getTraineeTrainings(request);
+        List<TraineeTrainingResponse> result = trainingService.getTraineeTrainings(
+                "John.Smith",
+                null,
+                null,
+                null,
+                null
+        );
 
         assertTrue(result.isEmpty());
 
@@ -383,48 +406,55 @@ class TrainingServiceTest {
                 null,
                 null
         );
+        verifyNoInteractions(trainingMapper);
     }
 
     @Test
-    void getTrainerTrainingsShouldDelegateToRepositoryWithCriteria() {
-        GetTrainerTrainingsRequest request = new GetTrainerTrainingsRequest(
-                "Mike.Brown",
-                LocalDate.of(2026, 5, 1),
-                LocalDate.of(2026, 5, 31),
-                "John"
-        );
+    void getTrainerTrainingsShouldDelegateToRepositoryAndMapResponses() {
+        LocalDate from = LocalDate.of(2026, 5, 1);
+        LocalDate to = LocalDate.of(2026, 5, 31);
 
         Training training = createTraining();
 
+        TrainerTrainingResponse response = new TrainerTrainingResponse(
+                "Morning Cardio",
+                LocalDate.of(2026, 5, 5),
+                new TrainingTypeResponse(3L, "Cardio"),
+                60,
+                "John.Smith"
+        );
+
         when(trainingRepository.findTrainerTrainingsByCriteria(
                 "Mike.Brown",
-                LocalDate.of(2026, 5, 1),
-                LocalDate.of(2026, 5, 31),
+                from,
+                to,
                 "John"
         )).thenReturn(List.of(training));
 
-        List<Training> result = trainingService.getTrainerTrainings(request);
+        when(trainingMapper.toTrainerTrainingResponse(training))
+                .thenReturn(response);
+
+        List<TrainerTrainingResponse> result = trainingService.getTrainerTrainings(
+                "Mike.Brown",
+                from,
+                to,
+                "John"
+        );
 
         assertEquals(1, result.size());
-        assertSame(training, result.getFirst());
+        assertSame(response, result.getFirst());
 
         verify(trainingRepository).findTrainerTrainingsByCriteria(
                 "Mike.Brown",
-                LocalDate.of(2026, 5, 1),
-                LocalDate.of(2026, 5, 31),
+                from,
+                to,
                 "John"
         );
+        verify(trainingMapper).toTrainerTrainingResponse(training);
     }
 
     @Test
     void getTrainerTrainingsShouldSupportNullOptionalCriteria() {
-        GetTrainerTrainingsRequest request = new GetTrainerTrainingsRequest(
-                "Mike.Brown",
-                null,
-                null,
-                null
-        );
-
         when(trainingRepository.findTrainerTrainingsByCriteria(
                 "Mike.Brown",
                 null,
@@ -432,7 +462,12 @@ class TrainingServiceTest {
                 null
         )).thenReturn(List.of());
 
-        List<Training> result = trainingService.getTrainerTrainings(request);
+        List<TrainerTrainingResponse> result = trainingService.getTrainerTrainings(
+                "Mike.Brown",
+                null,
+                null,
+                null
+        );
 
         assertTrue(result.isEmpty());
 
@@ -442,14 +477,18 @@ class TrainingServiceTest {
                 null,
                 null
         );
+        verifyNoInteractions(trainingMapper);
     }
 
     private Training createTraining() {
+        Trainee trainee = createTrainee(1L, "John.Smith");
+        Trainer trainer = createTrainer(2L, "Mike.Brown", 3L, "Cardio");
+
         return Training.builder()
                 .id(1L)
-                .trainee(createTrainee(1L, "John.Smith"))
-                .trainer(createTrainer(2L, "Mike.Brown"))
-                .trainingType(createTrainingType(3L, "Cardio"))
+                .trainee(trainee)
+                .trainer(trainer)
+                .trainingType(trainer.getSpecialization())
                 .trainingName("Morning Cardio")
                 .trainingDate(LocalDate.of(2026, 5, 5))
                 .trainingDuration(60)
@@ -469,11 +508,14 @@ class TrainingServiceTest {
         return trainee;
     }
 
-    private Trainer createTrainer(Long id, String username) {
+    private Trainer createTrainer(Long id,
+                                  String username,
+                                  Long specializationId,
+                                  String specializationName) {
         Trainer trainer = Trainer.builder()
                 .id(id)
                 .user(createUser(id + 200, username))
-                .specialization(createTrainingType(1L, "Cardio"))
+                .specialization(createTrainingType(specializationId, specializationName))
                 .build();
 
         trainer.getUser().setTrainer(trainer);
@@ -482,10 +524,12 @@ class TrainingServiceTest {
     }
 
     private User createUser(Long id, String username) {
+        String[] parts = username.split("\\.");
+
         return User.builder()
                 .id(id)
-                .firstName(username.split("\\.")[0])
-                .lastName(username.split("\\.")[1])
+                .firstName(parts[0])
+                .lastName(parts[1])
                 .username(username)
                 .password("password12")
                 .isActive(true)

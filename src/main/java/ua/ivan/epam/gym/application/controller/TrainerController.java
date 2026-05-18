@@ -40,7 +40,8 @@ public class TrainerController {
     @RequireAuth
     @GetMapping("/{username}")
     @ApiOperation("Get trainer profile by username")
-    public ResponseEntity<TrainerProfileResponse> getTrainerProfile(@PathVariable String username) {
+    public ResponseEntity<TrainerProfileResponse> getTrainerProfile(
+            @PathVariable(value = "username") String username) {
         return ResponseEntity.ok(trainerService.getProfileByUsername(username));
     }
 
@@ -57,10 +58,10 @@ public class TrainerController {
     @GetMapping("/{username}/trainings")
     @ApiOperation("Get trainer trainings list by criteria")
     public ResponseEntity<List<TrainerTrainingResponse>> getTrainerTrainings(
-            @PathVariable String username,
-            @RequestParam(required = false) LocalDate periodFrom,
-            @RequestParam(required = false) LocalDate periodTo,
-            @RequestParam(required = false) String traineeName
+            @PathVariable(value = "username") String username,
+            @RequestParam(required = false, value = "periodFrom") LocalDate periodFrom,
+            @RequestParam(required = false, value = "periodTo") LocalDate periodTo,
+            @RequestParam(required = false, value = "traineeName") String traineeName
     ) {
         return ResponseEntity.ok(trainingService.getTrainerTrainings(
                 username,

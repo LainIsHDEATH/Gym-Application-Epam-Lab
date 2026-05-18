@@ -37,7 +37,8 @@ public class TraineeController {
     @RequireAuth
     @GetMapping("/{username}")
     @ApiOperation("Get trainee profile by username")
-    public ResponseEntity<TraineeProfileResponse> getTraineeProfile(@PathVariable String username) {
+    public ResponseEntity<TraineeProfileResponse> getTraineeProfile(
+            @PathVariable(value = "username") String username) {
         return ResponseEntity.ok(traineeService.getProfileByUsername(username));
     }
 
@@ -53,7 +54,7 @@ public class TraineeController {
     @RequireAuth
     @DeleteMapping("/{username}")
     @ApiOperation("Delete trainee profile by username")
-    public ResponseEntity<Void> deleteTraineeProfile(@PathVariable String username) {
+    public ResponseEntity<Void> deleteTraineeProfile(@PathVariable(value = "username") String username) {
         traineeService.deleteByUsername(username);
 
         return ResponseEntity.ok().build();
@@ -63,7 +64,7 @@ public class TraineeController {
     @GetMapping("/{username}/not-assigned-trainers")
     @ApiOperation("Get active trainers not assigned to trainee")
     public ResponseEntity<List<TrainerShortResponse>> getActiveTrainersNotAssignedToTrainee(
-            @PathVariable String username
+            @PathVariable(value = "username") String username
     ) {
         return ResponseEntity.ok(trainerService.getTrainersNotAssignedToTrainee(username));
     }
@@ -81,11 +82,11 @@ public class TraineeController {
     @GetMapping("/{username}/trainings")
     @ApiOperation("Get trainee trainings list by criteria")
     public ResponseEntity<List<TraineeTrainingResponse>> getTraineeTrainings(
-            @PathVariable String username,
-            @RequestParam(required = false) LocalDate periodFrom,
-            @RequestParam(required = false) LocalDate periodTo,
-            @RequestParam(required = false) String trainerName,
-            @RequestParam(required = false) Long trainingTypeId
+            @PathVariable(value = "username") String username,
+            @RequestParam(required = false, value = "periodFrom") LocalDate periodFrom,
+            @RequestParam(required = false, value = "periodTo") LocalDate periodTo,
+            @RequestParam(required = false, value = "trainerName") String trainerName,
+            @RequestParam(required = false, value = "trainingTypeId") Long trainingTypeId
     ) {
         return ResponseEntity.ok(trainingService.getTraineeTrainings(
                 username,
