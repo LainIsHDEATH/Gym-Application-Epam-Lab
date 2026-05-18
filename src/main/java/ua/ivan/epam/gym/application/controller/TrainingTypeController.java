@@ -2,6 +2,8 @@ package ua.ivan.epam.gym.application.controller;
 
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
+import io.swagger.annotations.ApiResponse;
+import io.swagger.annotations.ApiResponses;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -21,7 +23,12 @@ public class TrainingTypeController {
 
     @RequireAuth
     @GetMapping
-    @ApiOperation("Get training types")
+    @ApiOperation(value = "Get training types", response = TrainingTypeResponse.class, responseContainer = "List")
+    @ApiResponses(value = {
+            @ApiResponse(code = 200, message = "Successfully loaded training types"),
+            @ApiResponse(code = 401, message = "You are not authorized to view the resource"),
+            @ApiResponse(code = 500, message = "Application failed to process the request")
+    })
     public ResponseEntity<List<TrainingTypeResponse>> getTrainingTypes() {
         return ResponseEntity.ok(trainingTypeService.getAll());
     }

@@ -2,6 +2,8 @@ package ua.ivan.epam.gym.application.controller;
 
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
+import io.swagger.annotations.ApiResponse;
+import io.swagger.annotations.ApiResponses;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -24,6 +26,13 @@ public class AuthController {
     private final BasicAuthParser basicAuthParser;
 
     @GetMapping("/login")
+    @ApiOperation(value = "Authenticate user with Basic Authorization header")
+    @ApiResponses(value = {
+            @ApiResponse(code = 200, message = "Successfully authenticated"),
+            @ApiResponse(code = 400, message = "Missing or invalid Authorization header"),
+            @ApiResponse(code = 401, message = "Invalid username or password"),
+            @ApiResponse(code = 500, message = "Application failed to process the request")
+    })
     public ResponseEntity<Void> login(@RequestHeader("Authorization") String authorizationHeader) {
         BasicAuthCredentials credentials = basicAuthParser.parse(authorizationHeader);
 
@@ -34,7 +43,13 @@ public class AuthController {
 
     @RequireAuth
     @PutMapping("/password")
-    @ApiOperation("Change user password")
+    @ApiOperation(value = "Change user password")
+    @ApiResponses(value = {
+            @ApiResponse(code = 200, message = "Successfully changed user password"),
+            @ApiResponse(code = 400, message = "Invalid request body or validation error"),
+            @ApiResponse(code = 401, message = "Invalid username or password"),
+            @ApiResponse(code = 500, message = "Application failed to process the request")
+    })
     public ResponseEntity<Void> changePassword(@Valid @RequestBody ChangePasswordRequest request) {
         userService.changePassword(request);
 
