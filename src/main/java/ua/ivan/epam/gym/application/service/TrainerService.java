@@ -11,7 +11,8 @@ import ua.ivan.epam.gym.application.dto.request.UpdateTrainerProfileRequest;
 import ua.ivan.epam.gym.application.dto.response.RegistrationResponse;
 import ua.ivan.epam.gym.application.dto.response.TrainerProfileResponse;
 import ua.ivan.epam.gym.application.dto.response.TrainerShortResponse;
-import ua.ivan.epam.gym.application.mapper.RestResponseMapper;
+import ua.ivan.epam.gym.application.mapper.TrainerMapper;
+import ua.ivan.epam.gym.application.mapper.UserMapper;
 import ua.ivan.epam.gym.application.model.Trainer;
 import ua.ivan.epam.gym.application.model.TrainingType;
 import ua.ivan.epam.gym.application.model.User;
@@ -37,7 +38,8 @@ public class TrainerService {
     private final UsernameGenerator usernameGenerator;
     private final PasswordGenerator passwordGenerator;
 
-    private final RestResponseMapper mapper;
+    private final UserMapper userMapper;
+    private final TrainerMapper trainerMapper;
 
     @Transactional
     public RegistrationResponse register(RegisterTrainerProfileRequest request) {
@@ -75,7 +77,7 @@ public class TrainerService {
         log.info("Created trainer profile. trainerId={}, userId={}, username={}",
                 savedTrainer.getId(), savedUser.getId(), savedUser.getUsername());
 
-        return mapper.toRegistrationResponse(savedTrainer.getUser());
+        return userMapper.toRegistrationResponse(savedTrainer.getUser());
     }
 
     @Transactional(readOnly = true)
@@ -83,7 +85,7 @@ public class TrainerService {
         log.debug("Searching trainer profile by username={}", username);
 
         return trainerRepository.findByUsername(username)
-                .map(mapper::toTrainerProfileResponse)
+                .map(trainerMapper::toTrainerProfileResponse)
                 .orElseThrow(() -> {
                     log.warn("Trainer not found. username={}", username);
                     return new EntityNotFoundException("Trainer not found");
@@ -131,7 +133,7 @@ public class TrainerService {
 
         log.info("Updated trainer profile. trainerId={}", trainer.getId());
 
-        return mapper.toTrainerProfileResponse(trainer);
+        return trainerMapper.toTrainerProfileResponse(trainer);
     }
 
     @Transactional
@@ -161,7 +163,7 @@ public class TrainerService {
                 });
 
         return trainerRepository.findNotAssignedToTrainee(traineeUsername).stream()
-                .map(mapper::toTrainerShortResponse)
+                .map(trainerMapper::toTrainerShortResponse)
                 .toList();
     }
 }

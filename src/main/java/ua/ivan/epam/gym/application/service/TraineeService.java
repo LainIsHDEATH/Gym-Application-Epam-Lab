@@ -12,7 +12,9 @@ import ua.ivan.epam.gym.application.dto.request.UpdateTraineeTrainersRequest;
 import ua.ivan.epam.gym.application.dto.response.RegistrationResponse;
 import ua.ivan.epam.gym.application.dto.response.TraineeProfileResponse;
 import ua.ivan.epam.gym.application.dto.response.TrainerShortResponse;
-import ua.ivan.epam.gym.application.mapper.RestResponseMapper;
+import ua.ivan.epam.gym.application.mapper.TraineeMapper;
+import ua.ivan.epam.gym.application.mapper.TrainerMapper;
+import ua.ivan.epam.gym.application.mapper.UserMapper;
 import ua.ivan.epam.gym.application.model.Trainee;
 import ua.ivan.epam.gym.application.model.Trainer;
 import ua.ivan.epam.gym.application.model.User;
@@ -38,7 +40,9 @@ public class TraineeService {
     private final UsernameGenerator usernameGenerator;
     private final PasswordGenerator passwordGenerator;
 
-    private final RestResponseMapper mapper;
+    private final UserMapper userMapper;
+    private final TraineeMapper traineeMapper;
+    private final TrainerMapper trainerMapper;
 
     @Transactional
     public RegistrationResponse register(RegisterTraineeProfileRequest request) {
@@ -71,7 +75,7 @@ public class TraineeService {
         log.info("Created trainee profile. traineeId={}, userId={}, username={}",
                 savedTrainee.getId(), savedUser.getId(), savedUser.getUsername());
 
-        return mapper.toRegistrationResponse(savedTrainee.getUser());
+        return userMapper.toRegistrationResponse(savedTrainee.getUser());
     }
 
     @Transactional(readOnly = true)
@@ -79,7 +83,7 @@ public class TraineeService {
         log.debug("Searching trainee profile by username={}", username);
 
         return traineeRepository.findByUsername(username)
-                .map(mapper::toTraineeProfileResponse)
+                .map(traineeMapper::toTraineeProfileResponse)
                 .orElseThrow(() -> {
                     log.warn("Trainee not found. username={}", username);
                     return new EntityNotFoundException("Trainee not found");
@@ -128,7 +132,7 @@ public class TraineeService {
 
         log.info("Updated trainee profile. traineeId={}", trainee.getId());
 
-        return mapper.toTraineeProfileResponse(trainee);
+        return traineeMapper.toTraineeProfileResponse(trainee);
     }
 
     @Transactional
@@ -204,7 +208,7 @@ public class TraineeService {
 
         return trainee.getTrainers()
                 .stream()
-                .map(mapper::toTrainerShortResponse)
+                .map(trainerMapper::toTrainerShortResponse)
                 .toList();
     }
 }

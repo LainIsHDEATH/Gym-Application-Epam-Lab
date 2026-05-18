@@ -8,7 +8,7 @@ import org.springframework.transaction.annotation.Transactional;
 import ua.ivan.epam.gym.application.dto.request.AddTrainingRequest;
 import ua.ivan.epam.gym.application.dto.response.TraineeTrainingResponse;
 import ua.ivan.epam.gym.application.dto.response.TrainerTrainingResponse;
-import ua.ivan.epam.gym.application.mapper.RestResponseMapper;
+import ua.ivan.epam.gym.application.mapper.TrainingMapper;
 import ua.ivan.epam.gym.application.model.Trainee;
 import ua.ivan.epam.gym.application.model.Trainer;
 import ua.ivan.epam.gym.application.model.Training;
@@ -27,7 +27,7 @@ public class TrainingService {
     private final TraineeRepository traineeRepository;
     private final TrainerRepository trainerRepository;
 
-    private final RestResponseMapper mapper;
+    private final TrainingMapper trainingMapper;
 
     @Transactional
     public Training create(AddTrainingRequest request) {
@@ -104,7 +104,7 @@ public class TrainingService {
                         trainerName,
                         trainingTypeId)
                 .stream()
-                .map(mapper::toTraineeTrainingResponse)
+                .map(trainingMapper::toTraineeTrainingResponse)
                 .toList();
     }
 
@@ -121,7 +121,7 @@ public class TrainingService {
                 toDate,
                 traineeName)
                 .stream()
-                .map(mapper::toTrainerTrainingResponse)
+                .map(trainingMapper::toTrainerTrainingResponse)
                 .toList();
     }
 }
