@@ -26,15 +26,14 @@ public class TrainingService {
     private final TrainingRepository trainingRepository;
     private final TraineeRepository traineeRepository;
     private final TrainerRepository trainerRepository;
-    private final TrainingTypeRepository trainingTypeRepository;
 
     private final RestResponseMapper mapper;
 
     @Transactional
     public Training create(AddTrainingRequest request) {
 
-        log.info("Creating training. trainee username={}, trainer username={}, training type name={}, training name={}",
-                request.traineeUsername(), request.trainerUsername(), request.trainingTypeName(), request.trainingName());
+        log.info("Creating training. trainee username={}, trainer username={}, training name={}",
+                request.traineeUsername(), request.trainerUsername(), request.trainingName());
 
         Trainee trainee = traineeRepository.findByUsername(request.traineeUsername())
                 .orElseThrow(() -> {
@@ -48,11 +47,7 @@ public class TrainingService {
                     return new EntityNotFoundException("Trainer not found");
                 });
 
-        TrainingType trainingType = trainingTypeRepository.findByName(request.trainingTypeName())
-                .orElseThrow(() -> {
-                    log.warn("Cannot create training. Training type not found. training name={}", request.trainingName());
-                    return new EntityNotFoundException("Training type not found");
-                });
+        TrainingType trainingType = trainer.getSpecialization();
 
 
         Training training = Training.builder()
@@ -100,14 +95,14 @@ public class TrainingService {
             LocalDate periodFrom,
             LocalDate periodTo,
             String trainerName,
-            String trainingTypeName
+            Long trainingTypeId
     ) {
         return trainingRepository.findTraineeTrainingsByCriteria(
                         username,
                         periodFrom,
                         periodTo,
                         trainerName,
-                        trainingTypeName)
+                        trainingTypeId)
                 .stream()
                 .map(mapper::toTraineeTrainingResponse)
                 .toList();

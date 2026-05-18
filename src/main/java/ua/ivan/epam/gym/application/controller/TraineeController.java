@@ -85,14 +85,14 @@ public class TraineeController {
             @RequestParam(required = false) LocalDate periodFrom,
             @RequestParam(required = false) LocalDate periodTo,
             @RequestParam(required = false) String trainerName,
-            @RequestParam(required = false) String trainingTypeName
+            @RequestParam(required = false) Long trainingTypeId
     ) {
         return ResponseEntity.ok(trainingService.getTraineeTrainings(
                 username,
                 periodFrom,
                 periodTo,
                 trainerName,
-                trainingTypeName
+                trainingTypeId
         ));
     }
 

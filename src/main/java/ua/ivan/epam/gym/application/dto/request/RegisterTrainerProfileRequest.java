@@ -6,6 +6,6 @@ import jakarta.validation.constraints.Size;
 public record RegisterTrainerProfileRequest(
         @NotBlank @Size(max = 50) String firstName,
         @NotBlank @Size(max = 50) String lastName,
-        @NotBlank String specializationName
+        @NotBlank Long specializationId
 ) {
 }

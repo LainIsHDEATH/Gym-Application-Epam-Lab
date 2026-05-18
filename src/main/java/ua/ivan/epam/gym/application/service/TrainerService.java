@@ -41,13 +41,13 @@ public class TrainerService {
 
     @Transactional
     public RegistrationResponse register(RegisterTrainerProfileRequest request) {
-        log.info("Creating trainer profile for {} {}, specialization={}",
-                request.firstName(), request.lastName(), request.specializationName());
+        log.info("Creating trainer profile for {} {}, specialization id={}",
+                request.firstName(), request.lastName(), request.specializationId());
 
-        TrainingType specialization = trainingTypeRepository.findByName(request.specializationName())
+        TrainingType specialization = trainingTypeRepository.findById(request.specializationId())
                 .orElseThrow(() -> {
-                    log.warn("Cannot create trainer. Training type not found. name={}", request.specializationName());
-                    return new EntityNotFoundException("Training type not found. name=" + request.specializationName());
+                    log.warn("Cannot create trainer. Training type not found. id={}", request.specializationId());
+                    return new EntityNotFoundException("Training type not found. id=" + request.specializationId());
                 });
 
         String username = usernameGenerator.generate(
