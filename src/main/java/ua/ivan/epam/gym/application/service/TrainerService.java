@@ -5,6 +5,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import ua.ivan.epam.gym.application.actuator.metrics.CountGymEvent;
+import ua.ivan.epam.gym.application.actuator.metrics.GymMetric;
 import ua.ivan.epam.gym.application.dto.request.ChangeActiveStatusRequest;
 import ua.ivan.epam.gym.application.dto.request.RegisterTrainerProfileRequest;
 import ua.ivan.epam.gym.application.dto.request.UpdateTrainerProfileRequest;
@@ -41,6 +43,7 @@ public class TrainerService {
     private final UserMapper userMapper;
     private final TrainerMapper trainerMapper;
 
+    @CountGymEvent(GymMetric.TRAINER_REGISTRATION)
     @Transactional
     public RegistrationResponse register(RegisterTrainerProfileRequest request) {
         log.info("Creating trainer profile for {} {}, specialization id={}",

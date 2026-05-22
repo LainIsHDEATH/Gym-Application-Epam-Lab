@@ -5,6 +5,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import ua.ivan.epam.gym.application.actuator.metrics.CountGymEvent;
+import ua.ivan.epam.gym.application.actuator.metrics.GymMetric;
 import ua.ivan.epam.gym.application.dto.request.ChangeActiveStatusRequest;
 import ua.ivan.epam.gym.application.dto.request.RegisterTraineeProfileRequest;
 import ua.ivan.epam.gym.application.dto.request.UpdateTraineeProfileRequest;
@@ -44,6 +46,7 @@ public class TraineeService {
     private final TraineeMapper traineeMapper;
     private final TrainerMapper trainerMapper;
 
+    @CountGymEvent(GymMetric.TRAINEE_REGISTRATION)
     @Transactional
     public RegistrationResponse register(RegisterTraineeProfileRequest request) {
         log.info("Creating trainee profile for {} {}", request.firstName(), request.lastName());

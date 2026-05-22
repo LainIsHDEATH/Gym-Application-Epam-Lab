@@ -4,6 +4,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import ua.ivan.epam.gym.application.actuator.metrics.CountGymEvent;
+import ua.ivan.epam.gym.application.actuator.metrics.GymMetric;
 import ua.ivan.epam.gym.application.dto.request.ChangePasswordRequest;
 import ua.ivan.epam.gym.application.exception.exceptions.AuthenticationException;
 import ua.ivan.epam.gym.application.model.User;
@@ -16,6 +18,7 @@ public class UserService {
 
     private final UserRepository userRepository;
 
+    @CountGymEvent(GymMetric.PASSWORD_CHANGE)
     @Transactional
     public void changePassword(ChangePasswordRequest request) {
         String username = request.username();
