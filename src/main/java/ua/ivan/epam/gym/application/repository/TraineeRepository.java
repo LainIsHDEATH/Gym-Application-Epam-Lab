@@ -43,6 +43,22 @@ public class TraineeRepository implements CrudRepo<Long, Trainee> {
                 .findFirst();
     }
 
+    public Optional<Trainee> findProfileByUsername(String username) {
+        return em.createQuery("""
+            SELECT DISTINCT t
+            FROM Trainee t
+            JOIN FETCH t.user u
+            LEFT JOIN FETCH t.trainers tr
+            LEFT JOIN FETCH tr.user tru
+            LEFT JOIN FETCH tr.specialization s
+            WHERE u.username = :username
+            """, Trainee.class)
+                .setParameter("username", username)
+                .getResultList()
+                .stream()
+                .findFirst();
+    }
+
     @Override
     public List<Trainee> findAll() {
         return em.createQuery("""
@@ -92,6 +108,16 @@ public class TraineeRepository implements CrudRepo<Long, Trainee> {
                 WHERE t.id = :id
                 """, Long.class)
                 .setParameter("id", id)
+                .getSingleResult() > 0;
+    }
+
+    public boolean existsByUsername(String username) {
+        return em.createQuery("""
+                SELECT count(t)
+                FROM Trainee t
+                WHERE t.user.username = :username
+                """, Long.class)
+                .setParameter("username", username)
                 .getSingleResult() > 0;
     }
 }

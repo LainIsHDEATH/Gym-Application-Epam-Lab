@@ -69,7 +69,6 @@ public class Trainee {
         }
 
         this.user = user;
-        user.setTrainee(this);
     }
 
     public void addTrainer(Trainer trainer) {

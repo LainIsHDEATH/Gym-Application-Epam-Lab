@@ -84,7 +84,7 @@ public class TrainerService {
     public TrainerProfileResponse getProfileByUsername(String username) {
         log.debug("Searching trainer profile by username={}", username);
 
-        return trainerRepository.findByUsername(username)
+        return trainerRepository.findProfileByUsername(username)
                 .map(trainerMapper::toTrainerProfileResponse)
                 .orElseThrow(() -> {
                     log.warn("Trainer not found. username={}", username);
@@ -156,11 +156,10 @@ public class TrainerService {
 
     @Transactional(readOnly = true)
     public List<TrainerShortResponse> getTrainersNotAssignedToTrainee(String traineeUsername) {
-        traineeRepository.findByUsername(traineeUsername)
-                .orElseThrow(() -> {
-                    log.warn("Trainee not found. username={}", traineeUsername);
-                    return new EntityNotFoundException("Trainee not found. username=" + traineeUsername);
-                });
+        if (!traineeRepository.existsByUsername(traineeUsername)) {
+            log.warn("Trainee not found. username={}", traineeUsername);
+            throw new EntityNotFoundException("Trainee not found. username=" + traineeUsername);
+        }
 
         return trainerRepository.findNotAssignedToTrainee(traineeUsername).stream()
                 .map(trainerMapper::toTrainerShortResponse)

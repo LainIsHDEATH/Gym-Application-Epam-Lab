@@ -82,7 +82,7 @@ public class TraineeService {
     public TraineeProfileResponse getProfileByUsername(String username) {
         log.debug("Searching trainee profile by username={}", username);
 
-        return traineeRepository.findByUsername(username)
+        return traineeRepository.findProfileByUsername(username)
                 .map(traineeMapper::toTraineeProfileResponse)
                 .orElseThrow(() -> {
                     log.warn("Trainee not found. username={}", username);

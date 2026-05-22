@@ -221,7 +221,7 @@ class TrainerServiceTest {
 
         TrainerProfileResponse response = createTrainerProfileResponse();
 
-        when(trainerRepository.findByUsername("Mike.Brown"))
+        when(trainerRepository.findProfileByUsername("Mike.Brown"))
                 .thenReturn(Optional.of(trainer));
 
         when(trainerMapper.toTrainerProfileResponse(trainer))
@@ -232,13 +232,13 @@ class TrainerServiceTest {
         assertSame(response, result);
         assertEquals("Mike.Brown", result.username());
 
-        verify(trainerRepository).findByUsername("Mike.Brown");
+        verify(trainerRepository).findProfileByUsername("Mike.Brown");
         verify(trainerMapper).toTrainerProfileResponse(trainer);
     }
 
     @Test
     void getProfileByUsernameShouldThrowExceptionWhenTrainerDoesNotExist() {
-        when(trainerRepository.findByUsername("Unknown.User"))
+        when(trainerRepository.findProfileByUsername("Unknown.User"))
                 .thenReturn(Optional.empty());
 
         EntityNotFoundException exception = assertThrows(
@@ -248,7 +248,7 @@ class TrainerServiceTest {
 
         assertEquals("Trainer not found", exception.getMessage());
 
-        verify(trainerRepository).findByUsername("Unknown.User");
+        verify(trainerRepository).findProfileByUsername("Unknown.User");
         verifyNoInteractions(trainerMapper);
     }
 
@@ -480,8 +480,8 @@ class TrainerServiceTest {
         TrainerShortResponse response1 = createTrainerShortResponse("Mike.Brown", 1L, "Fitness");
         TrainerShortResponse response2 = createTrainerShortResponse("Alice.White", 2L, "Yoga");
 
-        when(traineeRepository.findByUsername("John.Smith"))
-                .thenReturn(Optional.of(trainee));
+        when(traineeRepository.existsByUsername("John.Smith"))
+                .thenReturn(true);
 
         when(trainerRepository.findNotAssignedToTrainee("John.Smith"))
                 .thenReturn(List.of(trainer1, trainer2));
@@ -499,7 +499,7 @@ class TrainerServiceTest {
         assertSame(response1, result.get(0));
         assertSame(response2, result.get(1));
 
-        verify(traineeRepository).findByUsername("John.Smith");
+        verify(traineeRepository).existsByUsername("John.Smith");
         verify(trainerRepository).findNotAssignedToTrainee("John.Smith");
         verify(trainerMapper).toTrainerShortResponse(trainer1);
         verify(trainerMapper).toTrainerShortResponse(trainer2);
@@ -509,8 +509,8 @@ class TrainerServiceTest {
     void getTrainersNotAssignedToTraineeShouldReturnEmptyListWhenNoTrainersFound() {
         Trainee trainee = createTrainee(1L, "John.Smith");
 
-        when(traineeRepository.findByUsername("John.Smith"))
-                .thenReturn(Optional.of(trainee));
+        when(traineeRepository.existsByUsername("John.Smith"))
+                .thenReturn(true);
 
         when(trainerRepository.findNotAssignedToTrainee("John.Smith"))
                 .thenReturn(List.of());
@@ -520,15 +520,15 @@ class TrainerServiceTest {
 
         assertTrue(result.isEmpty());
 
-        verify(traineeRepository).findByUsername("John.Smith");
+        verify(traineeRepository).existsByUsername("John.Smith");
         verify(trainerRepository).findNotAssignedToTrainee("John.Smith");
         verifyNoInteractions(trainerMapper);
     }
 
     @Test
     void getTrainersNotAssignedToTraineeShouldThrowExceptionWhenTraineeDoesNotExist() {
-        when(traineeRepository.findByUsername("Unknown.Trainee"))
-                .thenReturn(Optional.empty());
+        when(traineeRepository.existsByUsername("Unknown.Trainee"))
+                .thenReturn(false);
 
         EntityNotFoundException exception = assertThrows(
                 EntityNotFoundException.class,
@@ -537,7 +537,7 @@ class TrainerServiceTest {
 
         assertEquals("Trainee not found. username=Unknown.Trainee", exception.getMessage());
 
-        verify(traineeRepository).findByUsername("Unknown.Trainee");
+        verify(traineeRepository).existsByUsername("Unknown.Trainee");
         verify(trainerRepository, never()).findNotAssignedToTrainee(anyString());
         verifyNoInteractions(trainerMapper);
     }
@@ -551,7 +551,7 @@ class TrainerServiceTest {
         trainer.setUser(createUser(id + 100, username));
         trainer.setSpecialization(createTrainingType(specializationId, specializationName));
 
-        trainer.getUser().setTrainer(trainer);
+//        trainer.getUser().setTrainer(trainer);
 
         return trainer;
     }
@@ -564,7 +564,7 @@ class TrainerServiceTest {
                 .address("London")
                 .build();
 
-        trainee.getUser().setTrainee(trainee);
+//        trainee.getUser().setTrainee(trainee);
 
         return trainee;
     }

@@ -116,10 +116,10 @@ public class TrainingService {
             String traineeName
     ) {
         return trainingRepository.findTrainerTrainingsByCriteria(
-                trainerUsername,
-                fromDate,
-                toDate,
-                traineeName)
+                        trainerUsername,
+                        fromDate,
+                        toDate,
+                        traineeName)
                 .stream()
                 .map(trainingMapper::toTrainerTrainingResponse)
                 .toList();
