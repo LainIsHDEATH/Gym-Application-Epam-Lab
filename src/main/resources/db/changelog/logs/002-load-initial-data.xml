@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                      http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.25.xsd">
+
+    <changeSet id="001-load-training-types" author="Ivan">
+        <loadData file="data/training_types.csv"
+                  tableName="training_types"
+                  separator=","
+                  encoding="UTF-8">
+            <column name="training_type_name" type="STRING"/>
+        </loadData>
+    </changeSet>
+
+    <changeSet id="002-load-users" author="Ivan" context="local,dev">
+        <loadData file="data/users.csv"
+                  tableName="users"
+                  separator=","
+                  encoding="UTF-8">
+            <column name="first_name" type="STRING"/>
+            <column name="last_name" type="STRING"/>
+            <column name="username" type="STRING"/>
+            <column name="password" type="STRING"/>
+            <column name="is_active" type="BOOLEAN"/>
+        </loadData>
+    </changeSet>
+
+    <changeSet id="003-load-trainees" author="Ivan" context="local,dev">
+        <loadData file="data/trainees.csv"
+                  tableName="trainees"
+                  separator=","
+                  encoding="UTF-8">
+            <column name="user_id" type="NUMERIC"/>
+            <column name="date_of_birth" type="DATE"/>
+            <column name="address" type="STRING"/>
+        </loadData>
+    </changeSet>
+
+    <changeSet id="004-load-trainers" author="Ivan" context="local,dev">
+        <loadData file="data/trainers.csv"
+                  tableName="trainers"
+                  separator=","
+                  encoding="UTF-8">
+            <column name="user_id" type="NUMERIC"/>
+            <column name="specialization_id" type="NUMERIC"/>
+        </loadData>
+    </changeSet>
+
+    <changeSet id="005-load-trainings" author="Ivan" context="local,dev">
+        <loadData file="data/trainings.csv"
+                  tableName="trainings"
+                  separator=","
+                  encoding="UTF-8">
+            <column name="trainee_id" type="NUMERIC"/>
+            <column name="trainer_id" type="NUMERIC"/>
+            <column name="training_name" type="STRING"/>
+            <column name="training_type_id" type="NUMERIC"/>
+            <column name="training_date" type="DATE"/>
+            <column name="training_duration" type="NUMERIC"/>
+        </loadData>
+    </changeSet>
+
+    <changeSet id="006-fill-trainee-trainers-from-trainings" author="Ivan" context="local,dev">
+        <sql>
+            INSERT INTO trainee_trainers (trainee_id, trainer_id)
+            SELECT DISTINCT trainee_id, trainer_id
+            FROM trainings
+            ON CONFLICT DO NOTHING;
+        </sql>
+    </changeSet>
+
+</databaseChangeLog>
