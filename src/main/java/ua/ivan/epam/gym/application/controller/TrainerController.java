@@ -1,9 +1,12 @@
 package ua.ivan.epam.gym.application.controller;
 
-import io.swagger.annotations.Api;
-import io.swagger.annotations.ApiOperation;
-import io.swagger.annotations.ApiResponse;
-import io.swagger.annotations.ApiResponses;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.ArraySchema;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -24,19 +27,23 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/v1/trainers")
 @RequiredArgsConstructor
-@Api(tags = "Trainers")
+@Tag(name = "Trainers")
 public class TrainerController {
 
     private final TrainerService trainerService;
     private final TrainingService trainingService;
 
     @PostMapping
-    @ApiOperation(value = "Create trainer profile", response = RegistrationResponse.class)
+    @Operation(summary = "Create trainer profile")
     @ApiResponses(value = {
-            @ApiResponse(code = 200, message = "Successfully created trainer profile"),
-            @ApiResponse(code = 400, message = "Invalid request body or validation error"),
-            @ApiResponse(code = 404, message = "Training type was not found"),
-            @ApiResponse(code = 500, message = "Application failed to process the request")
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Successfully created trainer profile",
+                    content = @Content(schema = @Schema(implementation = RegistrationResponse.class))
+            ),
+            @ApiResponse(responseCode = "400", description = "Invalid request body or validation error"),
+            @ApiResponse(responseCode = "404", description = "Training type was not found"),
+            @ApiResponse(responseCode = "500", description = "Application failed to process the request")
     })
     public ResponseEntity<RegistrationResponse> createTrainer(
             @Valid @RequestBody RegisterTrainerProfileRequest request
@@ -46,28 +53,36 @@ public class TrainerController {
 
     @RequireAuth
     @GetMapping("/{username}")
-    @ApiOperation(value = "Get trainer profile by username", response = TrainerProfileResponse.class)
+    @Operation(summary = "Get trainer profile by username")
     @ApiResponses(value = {
-            @ApiResponse(code = 200, message = "Successfully loaded trainer profile"),
-            @ApiResponse(code = 401, message = "You are not authorized to view the resource"),
-            @ApiResponse(code = 404, message = "Trainer profile was not found"),
-            @ApiResponse(code = 500, message = "Application failed to process the request")
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Successfully loaded trainer profile",
+                    content = @Content(schema = @Schema(implementation = TrainerProfileResponse.class))
+            ),
+            @ApiResponse(responseCode = "401", description = "You are not authorized to view the resource"),
+            @ApiResponse(responseCode = "404", description = "Trainer profile was not found"),
+            @ApiResponse(responseCode = "500", description = "Application failed to process the request")
     })
     public ResponseEntity<TrainerProfileResponse> getTrainerProfile(
-            @PathVariable(value = "username") String username
+            @PathVariable String username
     ) {
         return ResponseEntity.ok(trainerService.getProfileByUsername(username));
     }
 
     @RequireAuth
     @PutMapping
-    @ApiOperation(value = "Update trainer profile", response = TrainerProfileResponse.class)
+    @Operation(summary = "Update trainer profile")
     @ApiResponses(value = {
-            @ApiResponse(code = 200, message = "Successfully updated trainer profile"),
-            @ApiResponse(code = 400, message = "Invalid request body or validation error"),
-            @ApiResponse(code = 401, message = "You are not authorized to update the resource"),
-            @ApiResponse(code = 404, message = "Trainer profile was not found"),
-            @ApiResponse(code = 500, message = "Application failed to process the request")
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Successfully updated trainer profile",
+                    content = @Content(schema = @Schema(implementation = TrainerProfileResponse.class))
+            ),
+            @ApiResponse(responseCode = "400", description = "Invalid request body or validation error"),
+            @ApiResponse(responseCode = "401", description = "You are not authorized to update the resource"),
+            @ApiResponse(responseCode = "404", description = "Trainer profile was not found"),
+            @ApiResponse(responseCode = "500", description = "Application failed to process the request")
     })
     public ResponseEntity<TrainerProfileResponse> updateTrainerProfile(
             @Valid @RequestBody UpdateTrainerProfileRequest request
@@ -77,18 +92,22 @@ public class TrainerController {
 
     @RequireAuth
     @GetMapping("/{username}/trainings")
-    @ApiOperation(value = "Get trainer trainings list by criteria", response = TrainerTrainingResponse.class, responseContainer = "List")
+    @Operation(summary = "Get trainer trainings list by criteria")
     @ApiResponses(value = {
-            @ApiResponse(code = 200, message = "Successfully loaded trainer trainings list"),
-            @ApiResponse(code = 400, message = "Invalid request parameters"),
-            @ApiResponse(code = 401, message = "You are not authorized to view the resource"),
-            @ApiResponse(code = 500, message = "Application failed to process the request")
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Successfully loaded trainer trainings list",
+                    content = @Content(array = @ArraySchema(schema = @Schema(implementation = TrainerTrainingResponse.class)))
+            ),
+            @ApiResponse(responseCode = "400", description = "Invalid request parameters"),
+            @ApiResponse(responseCode = "401", description = "You are not authorized to view the resource"),
+            @ApiResponse(responseCode = "500", description = "Application failed to process the request")
     })
     public ResponseEntity<List<TrainerTrainingResponse>> getTrainerTrainings(
-            @PathVariable(value = "username") String username,
-            @RequestParam(required = false, value = "periodFrom") LocalDate periodFrom,
-            @RequestParam(required = false, value = "periodTo") LocalDate periodTo,
-            @RequestParam(required = false, value = "traineeName") String traineeName
+            @PathVariable String username,
+            @RequestParam(required = false) LocalDate periodFrom,
+            @RequestParam(required = false) LocalDate periodTo,
+            @RequestParam(required = false) String traineeName
     ) {
         return ResponseEntity.ok(trainingService.getTrainerTrainings(
                 username,
@@ -100,13 +119,13 @@ public class TrainerController {
 
     @RequireAuth
     @PatchMapping("/status")
-    @ApiOperation(value = "Activate or de-activate trainer profile")
+    @Operation(summary = "Activate or de-activate trainer profile")
     @ApiResponses(value = {
-            @ApiResponse(code = 200, message = "Successfully changed trainer profile status"),
-            @ApiResponse(code = 400, message = "Invalid request body or validation error"),
-            @ApiResponse(code = 401, message = "You are not authorized to update the resource"),
-            @ApiResponse(code = 404, message = "Trainer profile was not found"),
-            @ApiResponse(code = 500, message = "Application failed to process the request")
+            @ApiResponse(responseCode = "200", description = "Successfully changed trainer profile status"),
+            @ApiResponse(responseCode = "400", description = "Invalid request body or validation error"),
+            @ApiResponse(responseCode = "401", description = "You are not authorized to update the resource"),
+            @ApiResponse(responseCode = "404", description = "Trainer profile was not found"),
+            @ApiResponse(responseCode = "500", description = "Application failed to process the request")
     })
     public ResponseEntity<Void> changeTrainerStatus(@Valid @RequestBody ChangeActiveStatusRequest request) {
         trainerService.changeActiveStatus(request);

@@ -49,7 +49,6 @@ public class Trainer {
         }
 
         this.user = user;
-        user.setTrainer(this);
     }
 
     @Override

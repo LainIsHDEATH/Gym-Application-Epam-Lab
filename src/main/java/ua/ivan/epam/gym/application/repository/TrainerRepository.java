@@ -44,6 +44,22 @@ public class TrainerRepository implements CrudRepo<Long, Trainer> {
                 .findFirst();
     }
 
+    public Optional<Trainer> findProfileByUsername(String username) {
+        return em.createQuery("""
+            SELECT DISTINCT tr
+            FROM Trainer tr
+            JOIN FETCH tr.user u
+            JOIN FETCH tr.specialization s
+            LEFT JOIN FETCH tr.trainees te
+            LEFT JOIN FETCH te.user teu
+            WHERE u.username = :username
+            """, Trainer.class)
+                .setParameter("username", username)
+                .getResultList()
+                .stream()
+                .findFirst();
+    }
+
     @Override
     public List<Trainer> findAll() {
         return em.createQuery("""

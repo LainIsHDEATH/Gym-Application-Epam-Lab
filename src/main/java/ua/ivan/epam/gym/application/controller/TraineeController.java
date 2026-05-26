@@ -1,9 +1,12 @@
 package ua.ivan.epam.gym.application.controller;
 
-import io.swagger.annotations.Api;
-import io.swagger.annotations.ApiOperation;
-import io.swagger.annotations.ApiResponse;
-import io.swagger.annotations.ApiResponses;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.ArraySchema;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -21,7 +24,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/v1/trainees")
 @RequiredArgsConstructor
-@Api(tags = "Trainees")
+@Tag(name = "Trainees")
 public class TraineeController {
 
     private final TraineeService traineeService;
@@ -29,11 +32,15 @@ public class TraineeController {
     private final TrainingService trainingService;
 
     @PostMapping
-    @ApiOperation(value = "Create trainee profile", response = RegistrationResponse.class)
+    @Operation(summary = "Create trainee profile")
     @ApiResponses(value = {
-            @ApiResponse(code = 200, message = "Successfully created trainee profile"),
-            @ApiResponse(code = 400, message = "Invalid request body or validation error"),
-            @ApiResponse(code = 500, message = "Application failed to process the request")
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Successfully created trainee profile",
+                    content = @Content(schema = @Schema(implementation = RegistrationResponse.class))
+            ),
+            @ApiResponse(responseCode = "400", description = "Invalid request body or validation error"),
+            @ApiResponse(responseCode = "500", description = "Application failed to process the request")
     })
     public ResponseEntity<RegistrationResponse> createTrainee(
             @Valid @RequestBody RegisterTraineeProfileRequest request
@@ -43,28 +50,36 @@ public class TraineeController {
 
     @RequireAuth
     @GetMapping("/{username}")
-    @ApiOperation(value = "Get trainee profile by username", response = TraineeProfileResponse.class)
+    @Operation(summary = "Get trainee profile by username")
     @ApiResponses(value = {
-            @ApiResponse(code = 200, message = "Successfully loaded trainee profile"),
-            @ApiResponse(code = 401, message = "You are not authorized to view the resource"),
-            @ApiResponse(code = 404, message = "Trainee profile was not found"),
-            @ApiResponse(code = 500, message = "Application failed to process the request")
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Successfully loaded trainee profile",
+                    content = @Content(schema = @Schema(implementation = TraineeProfileResponse.class))
+            ),
+            @ApiResponse(responseCode = "401", description = "You are not authorized to view the resource"),
+            @ApiResponse(responseCode = "404", description = "Trainee profile was not found"),
+            @ApiResponse(responseCode = "500", description = "Application failed to process the request")
     })
     public ResponseEntity<TraineeProfileResponse> getTraineeProfile(
-            @PathVariable(value = "username") String username
+            @PathVariable String username
     ) {
         return ResponseEntity.ok(traineeService.getProfileByUsername(username));
     }
 
     @RequireAuth
     @PutMapping
-    @ApiOperation(value = "Update trainee profile", response = TraineeProfileResponse.class)
+    @Operation(summary = "Update trainee profile")
     @ApiResponses(value = {
-            @ApiResponse(code = 200, message = "Successfully updated trainee profile"),
-            @ApiResponse(code = 400, message = "Invalid request body or validation error"),
-            @ApiResponse(code = 401, message = "You are not authorized to update the resource"),
-            @ApiResponse(code = 404, message = "Trainee profile was not found"),
-            @ApiResponse(code = 500, message = "Application failed to process the request")
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Successfully updated trainee profile",
+                    content = @Content(schema = @Schema(implementation = TraineeProfileResponse.class))
+            ),
+            @ApiResponse(responseCode = "400", description = "Invalid request body or validation error"),
+            @ApiResponse(responseCode = "401", description = "You are not authorized to update the resource"),
+            @ApiResponse(responseCode = "404", description = "Trainee profile was not found"),
+            @ApiResponse(responseCode = "500", description = "Application failed to process the request")
     })
     public ResponseEntity<TraineeProfileResponse> updateTraineeProfile(
             @Valid @RequestBody UpdateTraineeProfileRequest request
@@ -74,14 +89,14 @@ public class TraineeController {
 
     @RequireAuth
     @DeleteMapping("/{username}")
-    @ApiOperation(value = "Delete trainee profile by username")
+    @Operation(summary = "Delete trainee profile by username")
     @ApiResponses(value = {
-            @ApiResponse(code = 200, message = "Successfully deleted trainee profile"),
-            @ApiResponse(code = 401, message = "You are not authorized to delete the resource"),
-            @ApiResponse(code = 404, message = "Trainee profile was not found"),
-            @ApiResponse(code = 500, message = "Application failed to process the request")
+            @ApiResponse(responseCode = "200", description = "Successfully deleted trainee profile"),
+            @ApiResponse(responseCode = "401", description = "You are not authorized to delete the resource"),
+            @ApiResponse(responseCode = "404", description = "Trainee profile was not found"),
+            @ApiResponse(responseCode = "500", description = "Application failed to process the request")
     })
-    public ResponseEntity<Void> deleteTraineeProfile(@PathVariable(value = "username") String username) {
+    public ResponseEntity<Void> deleteTraineeProfile(@PathVariable String username) {
         traineeService.deleteByUsername(username);
 
         return ResponseEntity.ok().build();
@@ -89,28 +104,36 @@ public class TraineeController {
 
     @RequireAuth
     @GetMapping("/{username}/not-assigned-trainers")
-    @ApiOperation(value = "Get active trainers not assigned to trainee", response = TrainerShortResponse.class, responseContainer = "List")
+    @Operation(summary = "Get active trainers not assigned to trainee")
     @ApiResponses(value = {
-            @ApiResponse(code = 200, message = "Successfully loaded active trainers not assigned to trainee"),
-            @ApiResponse(code = 401, message = "You are not authorized to view the resource"),
-            @ApiResponse(code = 404, message = "Trainee profile was not found"),
-            @ApiResponse(code = 500, message = "Application failed to process the request")
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Successfully loaded active trainers not assigned to trainee",
+                    content = @Content(array = @ArraySchema(schema = @Schema(implementation = TrainerShortResponse.class)))
+            ),
+            @ApiResponse(responseCode = "401", description = "You are not authorized to view the resource"),
+            @ApiResponse(responseCode = "404", description = "Trainee profile was not found"),
+            @ApiResponse(responseCode = "500", description = "Application failed to process the request")
     })
     public ResponseEntity<List<TrainerShortResponse>> getActiveTrainersNotAssignedToTrainee(
-            @PathVariable(value = "username") String username
+            @PathVariable String username
     ) {
         return ResponseEntity.ok(trainerService.getTrainersNotAssignedToTrainee(username));
     }
 
     @RequireAuth
     @PutMapping("/trainers")
-    @ApiOperation(value = "Update trainee trainers list", response = TrainerShortResponse.class, responseContainer = "List")
+    @Operation(summary = "Update trainee trainers list")
     @ApiResponses(value = {
-            @ApiResponse(code = 200, message = "Successfully updated trainee trainers list"),
-            @ApiResponse(code = 400, message = "Invalid request body or validation error"),
-            @ApiResponse(code = 401, message = "You are not authorized to update the resource"),
-            @ApiResponse(code = 404, message = "Trainee or trainer was not found"),
-            @ApiResponse(code = 500, message = "Application failed to process the request")
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Successfully updated trainee trainers list",
+                    content = @Content(array = @ArraySchema(schema = @Schema(implementation = TrainerShortResponse.class)))
+            ),
+            @ApiResponse(responseCode = "400", description = "Invalid request body or validation error"),
+            @ApiResponse(responseCode = "401", description = "You are not authorized to update the resource"),
+            @ApiResponse(responseCode = "404", description = "Trainee or trainer was not found"),
+            @ApiResponse(responseCode = "500", description = "Application failed to process the request")
     })
     public ResponseEntity<List<TrainerShortResponse>> updateTraineeTrainersList(
             @Valid @RequestBody UpdateTraineeTrainersRequest request
@@ -120,19 +143,23 @@ public class TraineeController {
 
     @RequireAuth
     @GetMapping("/{username}/trainings")
-    @ApiOperation(value = "Get trainee trainings list by criteria", response = TraineeTrainingResponse.class, responseContainer = "List")
+    @Operation(summary = "Get trainee trainings list by criteria")
     @ApiResponses(value = {
-            @ApiResponse(code = 200, message = "Successfully loaded trainee trainings list"),
-            @ApiResponse(code = 400, message = "Invalid request parameters"),
-            @ApiResponse(code = 401, message = "You are not authorized to view the resource"),
-            @ApiResponse(code = 500, message = "Application failed to process the request")
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Successfully loaded trainee trainings list",
+                    content = @Content(array = @ArraySchema(schema = @Schema(implementation = TraineeTrainingResponse.class)))
+            ),
+            @ApiResponse(responseCode = "400", description = "Invalid request parameters"),
+            @ApiResponse(responseCode = "401", description = "You are not authorized to view the resource"),
+            @ApiResponse(responseCode = "500", description = "Application failed to process the request")
     })
     public ResponseEntity<List<TraineeTrainingResponse>> getTraineeTrainings(
-            @PathVariable(value = "username") String username,
-            @RequestParam(required = false, value = "periodFrom") LocalDate periodFrom,
-            @RequestParam(required = false, value = "periodTo") LocalDate periodTo,
-            @RequestParam(required = false, value = "trainerName") String trainerName,
-            @RequestParam(required = false, value = "trainingTypeId") Long trainingTypeId
+            @PathVariable String username,
+            @RequestParam(required = false) LocalDate periodFrom,
+            @RequestParam(required = false) LocalDate periodTo,
+            @RequestParam(required = false) String trainerName,
+            @RequestParam(required = false) Long trainingTypeId
     ) {
         return ResponseEntity.ok(trainingService.getTraineeTrainings(
                 username,
@@ -145,13 +172,13 @@ public class TraineeController {
 
     @RequireAuth
     @PatchMapping("/status")
-    @ApiOperation(value = "Activate or de-activate trainee profile")
+    @Operation(summary = "Activate or de-activate trainee profile")
     @ApiResponses(value = {
-            @ApiResponse(code = 200, message = "Successfully changed trainee profile status"),
-            @ApiResponse(code = 400, message = "Invalid request body or validation error"),
-            @ApiResponse(code = 401, message = "You are not authorized to update the resource"),
-            @ApiResponse(code = 404, message = "Trainee profile was not found"),
-            @ApiResponse(code = 500, message = "Application failed to process the request")
+            @ApiResponse(responseCode = "200", description = "Successfully changed trainee profile status"),
+            @ApiResponse(responseCode = "400", description = "Invalid request body or validation error"),
+            @ApiResponse(responseCode = "401", description = "You are not authorized to update the resource"),
+            @ApiResponse(responseCode = "404", description = "Trainee profile was not found"),
+            @ApiResponse(responseCode = "500", description = "Application failed to process the request")
     })
     public ResponseEntity<Void> changeTraineeStatus(@Valid @RequestBody ChangeActiveStatusRequest request) {
         traineeService.changeActiveStatus(request);

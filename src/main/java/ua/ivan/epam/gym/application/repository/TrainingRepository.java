@@ -95,6 +95,10 @@ public class TrainingRepository implements CrudRepo<Long, Training> {
 
         var training = cq.from(Training.class);
 
+        training.fetch("trainee", JoinType.INNER).fetch("user", JoinType.INNER);
+        training.fetch("trainer", JoinType.INNER).fetch("user", JoinType.INNER);
+        training.fetch("trainingType", JoinType.INNER);
+
         var trainee = training.join("trainee", JoinType.INNER);
         var traineeUser = trainee.join("user", JoinType.INNER);
 
@@ -134,6 +138,7 @@ public class TrainingRepository implements CrudRepo<Long, Training> {
         }
 
         cq.select(training)
+                .distinct(true)
                 .where(predicates.toArray(new Predicate[0]))
                 .orderBy(cb.desc(training.get("trainingDate")));
 
@@ -148,6 +153,10 @@ public class TrainingRepository implements CrudRepo<Long, Training> {
         var cq = cb.createQuery(Training.class);
 
         var training = cq.from(Training.class);
+
+        training.fetch("trainer", JoinType.INNER).fetch("user", JoinType.INNER);
+        training.fetch("trainee", JoinType.INNER).fetch("user", JoinType.INNER);
+        training.fetch("trainingType", JoinType.INNER);
 
         var trainer = training.join("trainer", JoinType.INNER);
         var trainerUser = trainer.join("user", JoinType.INNER);
@@ -182,6 +191,7 @@ public class TrainingRepository implements CrudRepo<Long, Training> {
         }
 
         cq.select(training)
+                .distinct(true)
                 .where(predicates.toArray(new Predicate[0]))
                 .orderBy(cb.desc(training.get("trainingDate")));
 

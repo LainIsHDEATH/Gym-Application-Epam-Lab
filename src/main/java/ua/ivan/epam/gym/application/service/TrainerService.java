@@ -5,6 +5,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import ua.ivan.epam.gym.application.actuator.metrics.CountGymEvent;
+import ua.ivan.epam.gym.application.actuator.metrics.GymMetric;
 import ua.ivan.epam.gym.application.dto.request.ChangeActiveStatusRequest;
 import ua.ivan.epam.gym.application.dto.request.RegisterTrainerProfileRequest;
 import ua.ivan.epam.gym.application.dto.request.UpdateTrainerProfileRequest;
@@ -41,6 +43,7 @@ public class TrainerService {
     private final UserMapper userMapper;
     private final TrainerMapper trainerMapper;
 
+    @CountGymEvent(GymMetric.TRAINER_REGISTRATION)
     @Transactional
     public RegistrationResponse register(RegisterTrainerProfileRequest request) {
         log.info("Creating trainer profile for {} {}, specialization id={}",
@@ -84,7 +87,7 @@ public class TrainerService {
     public TrainerProfileResponse getProfileByUsername(String username) {
         log.debug("Searching trainer profile by username={}", username);
 
-        return trainerRepository.findByUsername(username)
+        return trainerRepository.findProfileByUsername(username)
                 .map(trainerMapper::toTrainerProfileResponse)
                 .orElseThrow(() -> {
                     log.warn("Trainer not found. username={}", username);
@@ -156,11 +159,10 @@ public class TrainerService {
 
     @Transactional(readOnly = true)
     public List<TrainerShortResponse> getTrainersNotAssignedToTrainee(String traineeUsername) {
-        traineeRepository.findByUsername(traineeUsername)
-                .orElseThrow(() -> {
-                    log.warn("Trainee not found. username={}", traineeUsername);
-                    return new EntityNotFoundException("Trainee not found. username=" + traineeUsername);
-                });
+        if (!traineeRepository.existsByUsername(traineeUsername)) {
+            log.warn("Trainee not found. username={}", traineeUsername);
+            throw new EntityNotFoundException("Trainee not found. username=" + traineeUsername);
+        }
 
         return trainerRepository.findNotAssignedToTrainee(traineeUsername).stream()
                 .map(trainerMapper::toTrainerShortResponse)

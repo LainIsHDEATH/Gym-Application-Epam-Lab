@@ -33,19 +33,6 @@ public class User {
     @Column(name = "is_active", nullable = false)
     private Boolean isActive;
 
-    @OneToOne(
-            mappedBy = "user",
-            cascade = CascadeType.ALL,
-            orphanRemoval = true
-    )
-    private Trainee trainee;
-
-    @OneToOne(
-            mappedBy = "user",
-            cascade = CascadeType.ALL,
-            orphanRemoval = true
-    )
-    private Trainer trainer;
 
     @Override
     public final boolean equals(Object o) {

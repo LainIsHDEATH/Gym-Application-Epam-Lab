@@ -185,7 +185,7 @@ class TraineeServiceTest {
         Trainee trainee = createTrainee();
         TraineeProfileResponse response = createTraineeProfileResponse();
 
-        when(traineeRepository.findByUsername("John.Smith"))
+        when(traineeRepository.findProfileByUsername("John.Smith"))
                 .thenReturn(Optional.of(trainee));
 
         when(traineeMapper.toTraineeProfileResponse(trainee))
@@ -196,13 +196,13 @@ class TraineeServiceTest {
         assertSame(response, result);
         assertEquals("John.Smith", result.username());
 
-        verify(traineeRepository).findByUsername("John.Smith");
+        verify(traineeRepository).findProfileByUsername("John.Smith");
         verify(traineeMapper).toTraineeProfileResponse(trainee);
     }
 
     @Test
     void getProfileByUsernameShouldThrowExceptionWhenTraineeDoesNotExist() {
-        when(traineeRepository.findByUsername("Unknown.User"))
+        when(traineeRepository.findProfileByUsername("Unknown.User"))
                 .thenReturn(Optional.empty());
 
         EntityNotFoundException exception = assertThrows(
@@ -212,7 +212,7 @@ class TraineeServiceTest {
 
         assertEquals("Trainee not found", exception.getMessage());
 
-        verify(traineeRepository).findByUsername("Unknown.User");
+        verify(traineeRepository).findProfileByUsername("Unknown.User");
         verifyNoInteractions(traineeMapper);
     }
 

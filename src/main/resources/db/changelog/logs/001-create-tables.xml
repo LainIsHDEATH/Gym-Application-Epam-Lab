@@ -1,0 +1,199 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                      http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.25.xsd">
+
+    <changeSet id="001-create-users-table" author="Ivan">
+        <createTable tableName="users">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true"
+                             primaryKeyName="pk_users"
+                             nullable="false"/>
+            </column>
+
+            <column name="first_name" type="VARCHAR(50)">
+                <constraints nullable="false"/>
+            </column>
+
+            <column name="last_name" type="VARCHAR(50)">
+                <constraints nullable="false"/>
+            </column>
+
+            <column name="username" type="VARCHAR(255)">
+                <constraints nullable="false"
+                             unique="true"
+                             uniqueConstraintName="uk_users_username"/>
+            </column>
+
+            <column name="password" type="VARCHAR(100)">
+                <constraints nullable="false"/>
+            </column>
+
+            <column name="is_active" type="BOOLEAN">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+    </changeSet>
+
+    <changeSet id="002-create-training-types-table" author="Ivan">
+        <createTable tableName="training_types">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true"
+                             primaryKeyName="pk_training_types"
+                             nullable="false"/>
+            </column>
+
+            <column name="training_type_name" type="VARCHAR(255)">
+                <constraints nullable="false"
+                             unique="true"
+                             uniqueConstraintName="uk_training_types_training_type_name"/>
+            </column>
+        </createTable>
+    </changeSet>
+
+    <changeSet id="003-create-trainees-table" author="Ivan">
+        <createTable tableName="trainees">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true"
+                             primaryKeyName="pk_trainees"
+                             nullable="false"/>
+            </column>
+
+            <column name="date_of_birth" type="DATE"/>
+
+            <column name="address" type="VARCHAR(255)"/>
+
+            <column name="user_id" type="BIGINT">
+                <constraints nullable="false"
+                             unique="true"
+                             uniqueConstraintName="uk_trainees_user_id"/>
+            </column>
+        </createTable>
+
+        <addForeignKeyConstraint constraintName="fk_trainees_users"
+                                 baseTableName="trainees"
+                                 baseColumnNames="user_id"
+                                 referencedTableName="users"
+                                 referencedColumnNames="id"
+                                 onDelete="CASCADE"/>
+    </changeSet>
+
+    <changeSet id="004-create-trainers-table" author="Ivan">
+        <createTable tableName="trainers">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true"
+                             primaryKeyName="pk_trainers"
+                             nullable="false"/>
+            </column>
+
+            <column name="specialization_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+
+            <column name="user_id" type="BIGINT">
+                <constraints nullable="false"
+                             unique="true"
+                             uniqueConstraintName="uk_trainers_user_id"/>
+            </column>
+        </createTable>
+
+        <addForeignKeyConstraint constraintName="fk_trainers_training_types"
+                                 baseTableName="trainers"
+                                 baseColumnNames="specialization_id"
+                                 referencedTableName="training_types"
+                                 referencedColumnNames="id"/>
+
+        <addForeignKeyConstraint constraintName="fk_trainers_users"
+                                 baseTableName="trainers"
+                                 baseColumnNames="user_id"
+                                 referencedTableName="users"
+                                 referencedColumnNames="id"
+                                 onDelete="CASCADE"/>
+    </changeSet>
+
+    <changeSet id="005-create-trainee-trainers-table" author="Ivan">
+        <createTable tableName="trainee_trainers">
+            <column name="trainee_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+
+            <column name="trainer_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addPrimaryKey tableName="trainee_trainers"
+                       columnNames="trainee_id, trainer_id"
+                       constraintName="pk_trainee_trainers"/>
+
+        <addForeignKeyConstraint constraintName="fk_trainee_trainers_trainees"
+                                 baseTableName="trainee_trainers"
+                                 baseColumnNames="trainee_id"
+                                 referencedTableName="trainees"
+                                 referencedColumnNames="id"
+                                 onDelete="CASCADE"/>
+
+        <addForeignKeyConstraint constraintName="fk_trainee_trainers_trainers"
+                                 baseTableName="trainee_trainers"
+                                 baseColumnNames="trainer_id"
+                                 referencedTableName="trainers"
+                                 referencedColumnNames="id"
+                                 onDelete="CASCADE"/>
+    </changeSet>
+
+    <changeSet id="006-create-trainings-table" author="Ivan">
+        <createTable tableName="trainings">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true"
+                             primaryKeyName="pk_trainings"
+                             nullable="false"/>
+            </column>
+
+            <column name="trainee_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+
+            <column name="trainer_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+
+            <column name="training_name" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+
+            <column name="training_type_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+
+            <column name="training_date" type="DATE">
+                <constraints nullable="false"/>
+            </column>
+
+            <column name="training_duration" type="INTEGER">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addForeignKeyConstraint constraintName="fk_trainings_trainees"
+                                 baseTableName="trainings"
+                                 baseColumnNames="trainee_id"
+                                 referencedTableName="trainees"
+                                 referencedColumnNames="id"
+                                 onDelete="CASCADE"/>
+
+        <addForeignKeyConstraint constraintName="fk_trainings_trainers"
+                                 baseTableName="trainings"
+                                 baseColumnNames="trainer_id"
+                                 referencedTableName="trainers"
+                                 referencedColumnNames="id"/>
+
+        <addForeignKeyConstraint constraintName="fk_trainings_training_types"
+                                 baseTableName="trainings"
+                                 baseColumnNames="training_type_id"
+                                 referencedTableName="training_types"
+                                 referencedColumnNames="id"/>
+    </changeSet>
+
+</databaseChangeLog>

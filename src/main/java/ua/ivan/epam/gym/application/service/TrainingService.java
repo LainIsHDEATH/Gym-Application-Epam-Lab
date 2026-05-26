@@ -5,6 +5,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import ua.ivan.epam.gym.application.actuator.metrics.CountGymEvent;
+import ua.ivan.epam.gym.application.actuator.metrics.GymMetric;
 import ua.ivan.epam.gym.application.dto.request.AddTrainingRequest;
 import ua.ivan.epam.gym.application.dto.response.TraineeTrainingResponse;
 import ua.ivan.epam.gym.application.dto.response.TrainerTrainingResponse;
@@ -29,6 +31,7 @@ public class TrainingService {
 
     private final TrainingMapper trainingMapper;
 
+    @CountGymEvent(GymMetric.TRAINING_CREATED)
     @Transactional
     public Training create(AddTrainingRequest request) {
 
@@ -116,10 +119,10 @@ public class TrainingService {
             String traineeName
     ) {
         return trainingRepository.findTrainerTrainingsByCriteria(
-                trainerUsername,
-                fromDate,
-                toDate,
-                traineeName)
+                        trainerUsername,
+                        fromDate,
+                        toDate,
+                        traineeName)
                 .stream()
                 .map(trainingMapper::toTrainerTrainingResponse)
                 .toList();

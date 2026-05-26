@@ -503,8 +503,6 @@ class TrainingServiceTest {
                 .address("London")
                 .build();
 
-        trainee.getUser().setTrainee(trainee);
-
         return trainee;
     }
 
@@ -517,8 +515,6 @@ class TrainingServiceTest {
                 .user(createUser(id + 200, username))
                 .specialization(createTrainingType(specializationId, specializationName))
                 .build();
-
-        trainer.getUser().setTrainer(trainer);
 
         return trainer;
     }
