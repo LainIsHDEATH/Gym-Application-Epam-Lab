@@ -101,7 +101,9 @@ public class TrainerRepository implements CrudRepo<Long, Trainer> {
             SELECT tr
             FROM Trainer tr
             JOIN FETCH tr.user u
-            WHERE tr.id NOT IN (
+            JOIN FETCH tr.specialization s
+            WHERE u.isActive = true
+              AND tr.id NOT IN (
                 SELECT assignedTrainer.id
                 FROM Trainee te
                 JOIN te.user traineeUser

@@ -1,4 +1,4 @@
-package ua.ivan.epam.gym.application.dto;
+package ua.ivan.epam.gym.application.dto.request;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -8,6 +8,6 @@ import java.util.List;
 
 public record UpdateTraineeTrainersRequest(
         @NotBlank @Size(max = 255) String traineeUsername,
-        @NotNull List<String> trainerUsernames
+        @NotNull List<@NotBlank String> trainerUsernames
 ) {
 }

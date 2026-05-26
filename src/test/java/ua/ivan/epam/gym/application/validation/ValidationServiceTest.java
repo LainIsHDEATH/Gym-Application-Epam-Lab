@@ -3,14 +3,13 @@ package ua.ivan.epam.gym.application.validation;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Path;
 import jakarta.validation.Validator;
+import jakarta.validation.constraints.NotBlank;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import ua.ivan.epam.gym.application.dto.CreateTraineeRequest;
 
-import java.time.LocalDate;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -23,10 +22,10 @@ class ValidationServiceTest {
     private Validator validator;
 
     @Mock
-    private ConstraintViolation<CreateTraineeRequest> firstNameViolation;
+    private ConstraintViolation<TestRequest> firstNameViolation;
 
     @Mock
-    private ConstraintViolation<CreateTraineeRequest> lastNameViolation;
+    private ConstraintViolation<TestRequest> lastNameViolation;
 
     @Mock
     private Path firstNamePath;
@@ -39,12 +38,7 @@ class ValidationServiceTest {
 
     @Test
     void validateShouldNotThrowExceptionWhenObjectIsValid() {
-        CreateTraineeRequest request = new CreateTraineeRequest(
-                "John",
-                "Smith",
-                LocalDate.of(2000, 5, 10),
-                "London"
-        );
+        TestRequest request = new TestRequest("John", "Smith");
 
         when(validator.validate(request)).thenReturn(Set.of());
 
@@ -55,12 +49,7 @@ class ValidationServiceTest {
 
     @Test
     void validateShouldThrowExceptionWhenObjectHasSingleViolation() {
-        CreateTraineeRequest request = new CreateTraineeRequest(
-                "",
-                "Smith",
-                LocalDate.of(2000, 5, 10),
-                "London"
-        );
+        TestRequest request = new TestRequest("", "Smith");
 
         when(firstNameViolation.getPropertyPath()).thenReturn(firstNamePath);
         when(firstNamePath.toString()).thenReturn("firstName");
@@ -80,12 +69,7 @@ class ValidationServiceTest {
 
     @Test
     void validateShouldThrowExceptionWhenObjectHasMultipleViolations() {
-        CreateTraineeRequest request = new CreateTraineeRequest(
-                "",
-                "",
-                LocalDate.of(2000, 5, 10),
-                "London"
-        );
+        TestRequest request = new TestRequest("", "");
 
         when(firstNameViolation.getPropertyPath()).thenReturn(firstNamePath);
         when(firstNamePath.toString()).thenReturn("firstName");
@@ -112,5 +96,11 @@ class ValidationServiceTest {
         assertTrue(message.contains("; "));
 
         verify(validator).validate(request);
+    }
+
+    private record TestRequest(
+            @NotBlank String firstName,
+            @NotBlank String lastName
+    ) {
     }
 }

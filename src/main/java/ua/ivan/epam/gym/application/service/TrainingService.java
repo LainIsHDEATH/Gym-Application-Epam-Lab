@@ -1,18 +1,21 @@
 package ua.ivan.epam.gym.application.service;
 
+import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import ua.ivan.epam.gym.application.dto.CreateTrainingRequest;
-import ua.ivan.epam.gym.application.dto.GetTraineeTrainingsRequest;
-import ua.ivan.epam.gym.application.dto.GetTrainerTrainingsRequest;
+import ua.ivan.epam.gym.application.dto.request.AddTrainingRequest;
+import ua.ivan.epam.gym.application.dto.response.TraineeTrainingResponse;
+import ua.ivan.epam.gym.application.dto.response.TrainerTrainingResponse;
+import ua.ivan.epam.gym.application.mapper.TrainingMapper;
 import ua.ivan.epam.gym.application.model.Trainee;
 import ua.ivan.epam.gym.application.model.Trainer;
 import ua.ivan.epam.gym.application.model.Training;
 import ua.ivan.epam.gym.application.model.TrainingType;
 import ua.ivan.epam.gym.application.repository.*;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @Service
@@ -23,31 +26,28 @@ public class TrainingService {
     private final TrainingRepository trainingRepository;
     private final TraineeRepository traineeRepository;
     private final TrainerRepository trainerRepository;
-    private final TrainingTypeRepository trainingTypeRepository;
+
+    private final TrainingMapper trainingMapper;
 
     @Transactional
-    public Training create(CreateTrainingRequest request) {
+    public Training create(AddTrainingRequest request) {
 
-        log.info("Creating training. traineeId={}, trainerId={}, trainingTypeId={}, name={}",
-                request.traineeId(), request.trainerId(), request.trainingTypeId(), request.trainingName());
+        log.info("Creating training. trainee username={}, trainer username={}, training name={}",
+                request.traineeUsername(), request.trainerUsername(), request.trainingName());
 
-        Trainee trainee = traineeRepository.findById(request.traineeId())
+        Trainee trainee = traineeRepository.findByUsername(request.traineeUsername())
                 .orElseThrow(() -> {
-                    log.warn("Cannot create training. Trainee not found. traineeId={}", request.traineeId());
-                    return new RuntimeException("Trainee not found");
+                    log.warn("Cannot create training. Trainee not found. trainee username={}", request.traineeUsername());
+                    return new EntityNotFoundException("Trainee not found");
                 });
 
-        Trainer trainer = trainerRepository.findById(request.trainerId())
+        Trainer trainer = trainerRepository.findByUsername(request.trainerUsername())
                 .orElseThrow(() -> {
-                    log.warn("Cannot create training. Trainer not found. trainerId={}", request.trainerId());
-                    return new RuntimeException("Trainer not found");
+                    log.warn("Cannot create training. Trainer not found. trainer username={}", request.trainerUsername());
+                    return new EntityNotFoundException("Trainer not found");
                 });
 
-        TrainingType trainingType = trainingTypeRepository.findById(request.trainingTypeId())
-                .orElseThrow(() -> {
-                    log.warn("Cannot create training. Training type not found. trainingTypeId={}", request.trainingTypeId());
-                    return new RuntimeException("Training type not found");
-                });
+        TrainingType trainingType = trainer.getSpecialization();
 
 
         Training training = Training.builder()
@@ -76,7 +76,7 @@ public class TrainingService {
         return trainingRepository.findById(id)
                 .orElseThrow(() -> {
                     log.warn("Training not found. id={}", id);
-                    return new RuntimeException("Training not found");
+                    return new EntityNotFoundException("Training not found");
                 });
     }
 
@@ -90,23 +90,38 @@ public class TrainingService {
     }
 
     @Transactional(readOnly = true)
-    public List<Training> getTraineeTrainings(GetTraineeTrainingsRequest request) {
+    public List<TraineeTrainingResponse> getTraineeTrainings(
+            String username,
+            LocalDate periodFrom,
+            LocalDate periodTo,
+            String trainerName,
+            Long trainingTypeId
+    ) {
         return trainingRepository.findTraineeTrainingsByCriteria(
-                request.traineeUsername(),
-                request.fromDate(),
-                request.toDate(),
-                request.trainerName(),
-                request.trainingTypeId()
-        );
+                        username,
+                        periodFrom,
+                        periodTo,
+                        trainerName,
+                        trainingTypeId)
+                .stream()
+                .map(trainingMapper::toTraineeTrainingResponse)
+                .toList();
     }
 
     @Transactional(readOnly = true)
-    public List<Training> getTrainerTrainings(GetTrainerTrainingsRequest request) {
+    public List<TrainerTrainingResponse> getTrainerTrainings(
+            String trainerUsername,
+            LocalDate fromDate,
+            LocalDate toDate,
+            String traineeName
+    ) {
         return trainingRepository.findTrainerTrainingsByCriteria(
-                request.trainerUsername(),
-                request.fromDate(),
-                request.toDate(),
-                request.traineeName()
-        );
+                trainerUsername,
+                fromDate,
+                toDate,
+                traineeName)
+                .stream()
+                .map(trainingMapper::toTrainerTrainingResponse)
+                .toList();
     }
 }

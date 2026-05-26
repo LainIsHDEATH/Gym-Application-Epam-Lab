@@ -1,8 +1,8 @@
 package ua.ivan.epam.gym.application.authentication;
 
-import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
+import ua.ivan.epam.gym.application.exception.exceptions.AuthenticationException;
 import ua.ivan.epam.gym.application.model.User;
 import ua.ivan.epam.gym.application.repository.UserRepository;
 
@@ -14,10 +14,10 @@ public class AuthService {
 
     public void authenticate (String username, String password) {
         User user = userRepo.findByUsername(username)
-                .orElseThrow(() -> new EntityNotFoundException("User not found"));
+                .orElseThrow(() -> new AuthenticationException("Invalid username or password"));
 
         if (!user.getPassword().equals(password)) {
-            throw new RuntimeException("Invalid password");
+            throw new AuthenticationException("Invalid username or password");
         }
     }
 }

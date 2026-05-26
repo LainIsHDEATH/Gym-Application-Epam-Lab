@@ -5,8 +5,14 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import ua.ivan.epam.gym.application.dto.CreateTrainerRequest;
-import ua.ivan.epam.gym.application.dto.UpdateTrainerRequest;
+import ua.ivan.epam.gym.application.dto.request.ChangeActiveStatusRequest;
+import ua.ivan.epam.gym.application.dto.request.RegisterTrainerProfileRequest;
+import ua.ivan.epam.gym.application.dto.request.UpdateTrainerProfileRequest;
+import ua.ivan.epam.gym.application.dto.response.RegistrationResponse;
+import ua.ivan.epam.gym.application.dto.response.TrainerProfileResponse;
+import ua.ivan.epam.gym.application.dto.response.TrainerShortResponse;
+import ua.ivan.epam.gym.application.mapper.TrainerMapper;
+import ua.ivan.epam.gym.application.mapper.UserMapper;
 import ua.ivan.epam.gym.application.model.Trainer;
 import ua.ivan.epam.gym.application.model.TrainingType;
 import ua.ivan.epam.gym.application.model.User;
@@ -18,22 +24,26 @@ import ua.ivan.epam.gym.application.utils.PasswordGenerator;
 import ua.ivan.epam.gym.application.utils.UsernameGenerator;
 
 import java.util.List;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class TrainerService {
 
-    private final TrainerRepository trainerRepository;
     private final UserRepository userRepository;
+    private final TrainerRepository trainerRepository;
     private final TrainingTypeRepository trainingTypeRepository;
     private final TraineeRepository traineeRepository;
     private final UsernameGenerator usernameGenerator;
     private final PasswordGenerator passwordGenerator;
 
+    private final UserMapper userMapper;
+    private final TrainerMapper trainerMapper;
+
     @Transactional
-    public Trainer create(CreateTrainerRequest request) {
-        log.info("Creating trainer profile for {} {}, specialization={}",
+    public RegistrationResponse register(RegisterTrainerProfileRequest request) {
+        log.info("Creating trainer profile for {} {}, specialization id={}",
                 request.firstName(), request.lastName(), request.specializationId());
 
         TrainingType specialization = trainingTypeRepository.findById(request.specializationId())
@@ -41,8 +51,6 @@ public class TrainerService {
                     log.warn("Cannot create trainer. Training type not found. id={}", request.specializationId());
                     return new EntityNotFoundException("Training type not found. id=" + request.specializationId());
                 });
-
-        List<User> users = userRepository.findAll();
 
         String username = usernameGenerator.generate(
                 request.firstName(),
@@ -69,7 +77,19 @@ public class TrainerService {
         log.info("Created trainer profile. trainerId={}, userId={}, username={}",
                 savedTrainer.getId(), savedUser.getId(), savedUser.getUsername());
 
-        return savedTrainer;
+        return userMapper.toRegistrationResponse(savedTrainer.getUser());
+    }
+
+    @Transactional(readOnly = true)
+    public TrainerProfileResponse getProfileByUsername(String username) {
+        log.debug("Searching trainer profile by username={}", username);
+
+        return trainerRepository.findByUsername(username)
+                .map(trainerMapper::toTrainerProfileResponse)
+                .orElseThrow(() -> {
+                    log.warn("Trainer not found. username={}", username);
+                    return new EntityNotFoundException("Trainer not found");
+                });
     }
 
     @Transactional(readOnly = true)
@@ -88,78 +108,62 @@ public class TrainerService {
         log.debug("Searching trainer by username={}", username);
 
         return trainerRepository.findByUsername(username)
-                .orElseThrow(() -> new EntityNotFoundException(
-                        "Trainer not found. username=" + username
-                ));
+                .orElseThrow(() -> {
+                    log.warn("Trainer not found. username={}", username);
+                    return new EntityNotFoundException("Trainer not found. username=" + username);
+                });
+
     }
 
     @Transactional
-    public Trainer update(UpdateTrainerRequest request) {
-        log.info("Updating trainer profile. trainerId={}", request.trainerId());
+    public TrainerProfileResponse update(UpdateTrainerProfileRequest request) {
+        log.info("Updating trainer profile. trainer username={}", request.username());
 
-        Trainer trainer = trainerRepository.findById(request.trainerId())
+        Trainer trainer = trainerRepository.findByUsername(request.username())
+                .map(t -> {
+                    Optional.ofNullable(request.firstName()).ifPresent(t.getUser()::setFirstName);
+                    Optional.ofNullable(request.lastName()).ifPresent(t.getUser()::setLastName);
+                    Optional.ofNullable(request.isActive()).ifPresent(t.getUser()::setIsActive);
+                    return t;
+                })
                 .orElseThrow(() -> {
-                    log.warn("Cannot update trainer. Trainer not found. trainerId={}", request.trainerId());
+                    log.warn("Cannot update trainer. Trainer not found. trainer username={}", request.username());
                     return new EntityNotFoundException("Trainer not found");
                 });
 
-        TrainingType trainingType = trainingTypeRepository.findById(request.specializationId())
-                .orElseThrow(() -> {
-                    log.warn("Cannot update trainer. Training type not found. id={}", request.specializationId());
-                    return new EntityNotFoundException("Training type not found. id=" + request.specializationId());
-                });
-
-        trainer.setSpecialization(trainingType);
-
         log.info("Updated trainer profile. trainerId={}", trainer.getId());
 
-        return trainer;
+        return trainerMapper.toTrainerProfileResponse(trainer);
     }
 
     @Transactional
-    public Trainer changeActiveStatus(Long trainerId) {
-        log.info("Changing trainer profile status. trainerId={}", trainerId);
+    public void changeActiveStatus(ChangeActiveStatusRequest request) {
+        log.info("Changing trainer profile status. trainer username={}", request.username());
 
-        Trainer trainer = trainerRepository.findById(trainerId)
+        Trainer trainer = trainerRepository.findByUsername(request.username())
                 .orElseThrow(() -> {
-                    log.warn("Cannot change trainer status. Trainer not found. id={}", trainerId);
-                    return new EntityNotFoundException("Trainer not found. id=" + trainerId);
+                    log.warn("Cannot change trainer status. Trainer not found. username={}", request.username());
+                    return new EntityNotFoundException("Trainer not found. username=" + request.username());
                 });
 
         User user = trainer.getUser();
 
-        boolean currentStatus = user.getIsActive();
-
-        user.setIsActive(!currentStatus);
+        user.setIsActive(request.isActive());
 
         log.info("Changed trainer profile status. trainerId={}, newStatus={}",
                 trainer.getId(), user.getIsActive());
-
-        return trainer;
-    }
-
-    @Transactional
-    public void changePassword(String username, String oldPassword, String newPassword) {
-        Trainer trainer = getByUsername(username);
-        User user = trainer.getUser();
-
-        if (!oldPassword.equals(user.getPassword())) {
-            log.warn("Cannot change trainer password. Old password is incorrect. username={}", username);
-            throw new IllegalArgumentException("Old password is incorrect");
-        }
-        user.setPassword(newPassword);
-
-        log.info("Changed trainer password. username={}", username);
     }
 
     @Transactional(readOnly = true)
-    public List<Trainer> getNotAssignedToTrainee(String traineeUsername) {
+    public List<TrainerShortResponse> getTrainersNotAssignedToTrainee(String traineeUsername) {
         traineeRepository.findByUsername(traineeUsername)
                 .orElseThrow(() -> {
                     log.warn("Trainee not found. username={}", traineeUsername);
                     return new EntityNotFoundException("Trainee not found. username=" + traineeUsername);
                 });
 
-        return trainerRepository.findNotAssignedToTrainee(traineeUsername);
+        return trainerRepository.findNotAssignedToTrainee(traineeUsername).stream()
+                .map(trainerMapper::toTrainerShortResponse)
+                .toList();
     }
 }
