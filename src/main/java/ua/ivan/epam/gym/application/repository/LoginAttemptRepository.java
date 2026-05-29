@@ -9,7 +9,7 @@ import ua.ivan.epam.gym.application.model.LoginAttempt;
 import java.util.Optional;
 
 @Repository
-public interface LoginAttemptRepository extends JpaRepository<LoginAttempt, String> {
+public interface LoginAttemptRepository extends JpaRepository<LoginAttempt, Long> {
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("""

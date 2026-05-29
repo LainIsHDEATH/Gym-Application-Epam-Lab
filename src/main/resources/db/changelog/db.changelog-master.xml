@@ -9,5 +9,6 @@
     <include file="db/changelog/logs/001-create-tables.xml"/>
     <include file="db/changelog/logs/002-load-initial-data.xml"/>
     <include file="db/changelog/logs/003-create-security-tables.xml"/>
+    <include file="db/changelog/logs/004-update-seed-user-passwords.xml"/>
 
 </databaseChangeLog>
