@@ -1,6 +1,7 @@
 package ua.ivan.epam.gym.application.service;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.DisabledException;
@@ -20,6 +21,7 @@ import java.time.Instant;
 
 @Component
 @RequiredArgsConstructor
+@Slf4j
 public class AuthService {
 
     private static final String BEARER_PREFIX = "Bearer ";
@@ -40,7 +42,10 @@ public class AuthService {
     public LoginResponse login(LoginRequest request) {
         String username = request.username();
 
+        log.debug("Login attempt started. username={}", username);
+
         if (bruteForceProtectionService.isBlocked(username)) {
+            log.warn("Login rejected because user is blocked. username={}", username);
             throw new UserBlockedException("User is temporarily blocked. Try again later");
         }
 
@@ -52,9 +57,13 @@ public class AuthService {
                     )
             );
         } catch (BadCredentialsException exception) {
+            log.warn("Login failed due to invalid credentials. username={}", username);
+
             bruteForceProtectionService.loginFailed(username);
             throw new AuthenticationException("Invalid username or password");
         } catch (DisabledException exception) {
+            log.warn("Login failed because user is disabled. username={}", username);
+
             throw new AuthenticationException("User is disabled");
         }
 
@@ -62,6 +71,8 @@ public class AuthService {
 
         UserDetails userDetails = userDetailsService.loadUserByUsername(username);
         String token = jwtUtils.generateToken(userDetails);
+
+        log.info("User authenticated successfully. username={}", username);
 
         return new LoginResponse(
                 token,
@@ -71,14 +82,19 @@ public class AuthService {
     }
 
     public void logout(String authorizationHeader) {
+        log.debug("Logout attempt started");
+
         String token = extractBearerToken(authorizationHeader);
         Instant expiration = jwtUtils.extractExpiration(token);
 
         tokenBlacklistService.blacklist(token, expiration);
+
+        log.info("User logged out successfully.");
     }
 
     private String extractBearerToken(String authorizationHeader) {
         if (authorizationHeader == null || !authorizationHeader.startsWith(BEARER_PREFIX)) {
+            log.warn("Bearer token extraction failed. Authorization header is missing or invalid");
             throw new AuthenticationException("Missing Bearer token");
         }
 
