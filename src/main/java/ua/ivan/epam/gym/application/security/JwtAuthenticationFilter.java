@@ -1,4 +1,4 @@
-package ua.ivan.epam.gym.application.filter;
+package ua.ivan.epam.gym.application.security;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -13,8 +13,6 @@ import org.springframework.security.oauth2.jwt.JwtException;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
-import ua.ivan.epam.gym.application.security.GymUserDetailsService;
-import ua.ivan.epam.gym.application.security.JwtUtils;
 import ua.ivan.epam.gym.application.service.TokenBlacklistService;
 
 import java.io.IOException;
