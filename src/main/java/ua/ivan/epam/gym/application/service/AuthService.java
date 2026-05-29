@@ -32,7 +32,10 @@ public class AuthService {
 
     @CountGymFailure(
             value = GymMetric.AUTH_FAILURE,
-            exceptions = AuthenticationException.class
+            exceptions = {
+                    AuthenticationException.class,
+                    UserBlockedException.class
+            }
     )
     public LoginResponse login(LoginRequest request) {
         String username = request.username();
