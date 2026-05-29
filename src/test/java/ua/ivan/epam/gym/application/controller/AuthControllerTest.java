@@ -9,15 +9,16 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
-import ua.ivan.epam.gym.application.authentication.AuthService;
-import ua.ivan.epam.gym.application.authentication.BasicAuthCredentials;
-import ua.ivan.epam.gym.application.authentication.BasicAuthParser;
 import ua.ivan.epam.gym.application.dto.request.ChangePasswordRequest;
+import ua.ivan.epam.gym.application.dto.request.LoginRequest;
+import ua.ivan.epam.gym.application.dto.response.LoginResponse;
+import ua.ivan.epam.gym.application.service.AuthService;
 import ua.ivan.epam.gym.application.service.UserService;
 
 import static org.mockito.Mockito.*;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.setup.MockMvcBuilders.standaloneSetup;
 
@@ -29,9 +30,6 @@ class AuthControllerTest {
 
     @Mock
     private UserService userService;
-
-    @Mock
-    private BasicAuthParser basicAuthParser;
 
     @InjectMocks
     private AuthController authController;
@@ -47,32 +45,92 @@ class AuthControllerTest {
     }
 
     @Test
-    void loginShouldReturnOkWhenCredentialsAreValid() throws Exception {
-        String authorizationHeader = "Basic Sm9obi5TbWl0aDpwYXNzd29yZDEy";
-
-        BasicAuthCredentials credentials = new BasicAuthCredentials(
+    void loginShouldReturnOkAndTokenWhenRequestIsValid() throws Exception {
+        LoginRequest request = new LoginRequest(
                 "John.Smith",
                 "password12"
         );
 
-        when(basicAuthParser.parse(authorizationHeader))
-                .thenReturn(credentials);
+        LoginResponse response = new LoginResponse(
+                "jwt-token",
+                "Bearer",
+                3600L
+        );
 
-        mockMvc.perform(get("/api/v1/login")
-                        .header("Authorization", authorizationHeader))
-                .andExpect(status().isOk());
+        when(authService.login(request))
+                .thenReturn(response);
 
-        verify(basicAuthParser).parse(authorizationHeader);
-        verify(authService).authenticate("John.Smith", "password12");
+        mockMvc.perform(post("/api/v1/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.token").value("jwt-token"))
+                .andExpect(jsonPath("$.tokenType").value("Bearer"))
+                .andExpect(jsonPath("$.expiresInSeconds").value(3600));
+
+        verify(authService).login(request);
         verifyNoInteractions(userService);
     }
 
     @Test
-    void loginShouldReturnBadRequestWhenAuthorizationHeaderIsMissing() throws Exception {
-        mockMvc.perform(get("/api/v1/login"))
+    void loginShouldReturnBadRequestWhenBodyIsMissing() throws Exception {
+        mockMvc.perform(post("/api/v1/login")
+                        .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isBadRequest());
 
-        verifyNoInteractions(basicAuthParser);
+        verifyNoInteractions(authService);
+        verifyNoInteractions(userService);
+    }
+
+    @Test
+    void loginShouldReturnBadRequestWhenUsernameIsBlank() throws Exception {
+        LoginRequest request = new LoginRequest(
+                "",
+                "password12"
+        );
+
+        mockMvc.perform(post("/api/v1/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest());
+
+        verifyNoInteractions(authService);
+        verifyNoInteractions(userService);
+    }
+
+    @Test
+    void loginShouldReturnBadRequestWhenPasswordIsBlank() throws Exception {
+        LoginRequest request = new LoginRequest(
+                "John.Smith",
+                ""
+        );
+
+        mockMvc.perform(post("/api/v1/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest());
+
+        verifyNoInteractions(authService);
+        verifyNoInteractions(userService);
+    }
+
+    @Test
+    void logoutShouldReturnOkWhenAuthorizationHeaderIsValid() throws Exception {
+        String authorizationHeader = "Bearer jwt-token";
+
+        mockMvc.perform(post("/api/v1/logout")
+                        .header("Authorization", authorizationHeader))
+                .andExpect(status().isOk());
+
+        verify(authService).logout(authorizationHeader);
+        verifyNoInteractions(userService);
+    }
+
+    @Test
+    void logoutShouldReturnBadRequestWhenAuthorizationHeaderIsMissing() throws Exception {
+        mockMvc.perform(post("/api/v1/logout"))
+                .andExpect(status().isBadRequest());
+
         verifyNoInteractions(authService);
         verifyNoInteractions(userService);
     }
@@ -92,7 +150,6 @@ class AuthControllerTest {
 
         verify(userService).changePassword(request);
         verifyNoInteractions(authService);
-        verifyNoInteractions(basicAuthParser);
     }
 
     @Test
@@ -103,6 +160,5 @@ class AuthControllerTest {
 
         verifyNoInteractions(userService);
         verifyNoInteractions(authService);
-        verifyNoInteractions(basicAuthParser);
     }
 }
