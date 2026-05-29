@@ -13,6 +13,14 @@ spring:
     user: postgres
     password: postgres
 
+security:
+  jwt:
+    secret: MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=
+    expiration-minutes: 60
+
+  cors:
+    allowed-origins: http://localhost:3000,http://localhost:5173
+
 logging:
   level:
     root: INFO
