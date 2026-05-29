@@ -15,7 +15,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 import ua.ivan.epam.gym.application.security.GymUserDetailsService;
 import ua.ivan.epam.gym.application.security.JwtUtils;
-import ua.ivan.epam.gym.application.security.TokenBlacklistService;
+import ua.ivan.epam.gym.application.service.TokenBlacklistService;
 
 import java.io.IOException;
 

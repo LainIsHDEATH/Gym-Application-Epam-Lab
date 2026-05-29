@@ -8,7 +8,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import ua.ivan.epam.gym.application.authentication.AuthService;
+import ua.ivan.epam.gym.application.service.AuthService;
 import ua.ivan.epam.gym.application.dto.request.ChangePasswordRequest;
 import ua.ivan.epam.gym.application.dto.request.LoginRequest;
 import ua.ivan.epam.gym.application.dto.response.LoginResponse;

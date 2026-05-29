@@ -1,4 +1,4 @@
-package ua.ivan.epam.gym.application.authentication;
+package ua.ivan.epam.gym.application.service;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -13,10 +13,8 @@ import ua.ivan.epam.gym.application.dto.request.LoginRequest;
 import ua.ivan.epam.gym.application.dto.response.LoginResponse;
 import ua.ivan.epam.gym.application.exception.exceptions.AuthenticationException;
 import ua.ivan.epam.gym.application.exception.exceptions.UserBlockedException;
-import ua.ivan.epam.gym.application.security.BruteForceProtectionService;
 import ua.ivan.epam.gym.application.security.GymUserDetailsService;
 import ua.ivan.epam.gym.application.security.JwtUtils;
-import ua.ivan.epam.gym.application.security.TokenBlacklistService;
 
 import java.time.Instant;
 

@@ -1,4 +1,4 @@
-package ua.ivan.epam.gym.application.security;
+package ua.ivan.epam.gym.application.service;
 
 import org.springframework.stereotype.Service;
 
