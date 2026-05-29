@@ -3,6 +3,7 @@ package ua.ivan.epam.gym.application.service;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ua.ivan.epam.gym.application.actuator.metrics.CountGymEvent;
@@ -14,7 +15,6 @@ import ua.ivan.epam.gym.application.dto.response.RegistrationResponse;
 import ua.ivan.epam.gym.application.dto.response.TrainerProfileResponse;
 import ua.ivan.epam.gym.application.dto.response.TrainerShortResponse;
 import ua.ivan.epam.gym.application.mapper.TrainerMapper;
-import ua.ivan.epam.gym.application.mapper.UserMapper;
 import ua.ivan.epam.gym.application.model.Trainer;
 import ua.ivan.epam.gym.application.model.TrainingType;
 import ua.ivan.epam.gym.application.model.User;
@@ -40,8 +40,8 @@ public class TrainerService {
     private final UsernameGenerator usernameGenerator;
     private final PasswordGenerator passwordGenerator;
 
-    private final UserMapper userMapper;
     private final TrainerMapper trainerMapper;
+    private final PasswordEncoder passwordEncoder;
 
     @CountGymEvent(GymMetric.TRAINER_REGISTRATION)
     @Transactional
@@ -59,13 +59,14 @@ public class TrainerService {
                 request.firstName(),
                 request.lastName(),
                 userRepository::existsByUsername);
-        String password = passwordGenerator.generate();
+        String rawPassword = passwordGenerator.generate();
+        String encodedPassword = passwordEncoder.encode(rawPassword);
 
         User user = User.builder()
                 .firstName(request.firstName())
                 .lastName(request.lastName())
                 .username(username)
-                .password(password)
+                .password(encodedPassword)
                 .isActive(true)
                 .build();
 
@@ -80,7 +81,7 @@ public class TrainerService {
         log.info("Created trainer profile. trainerId={}, userId={}, username={}",
                 savedTrainer.getId(), savedUser.getId(), savedUser.getUsername());
 
-        return userMapper.toRegistrationResponse(savedTrainer.getUser());
+        return new RegistrationResponse(savedUser.getUsername(), rawPassword);
     }
 
     @Transactional(readOnly = true)

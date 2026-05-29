@@ -8,7 +8,6 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import ua.ivan.epam.gym.application.authentication.RequireAuth;
 import ua.ivan.epam.gym.application.dto.request.AddTrainingRequest;
 import ua.ivan.epam.gym.application.service.TrainingService;
 
@@ -20,7 +19,6 @@ public class TrainingController {
 
     private final TrainingService trainingService;
 
-    @RequireAuth
     @PostMapping
     @Operation(summary = "Add training")
     @ApiResponses(value = {

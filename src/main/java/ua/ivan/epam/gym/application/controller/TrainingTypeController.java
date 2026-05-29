@@ -10,7 +10,6 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import ua.ivan.epam.gym.application.authentication.RequireAuth;
 import ua.ivan.epam.gym.application.dto.response.TrainingTypeResponse;
 import ua.ivan.epam.gym.application.service.TrainingTypeService;
 
@@ -24,7 +23,6 @@ public class TrainingTypeController {
 
     private final TrainingTypeService trainingTypeService;
 
-    @RequireAuth
     @GetMapping
     @Operation(summary = "Get training types")
     @ApiResponses(value = {

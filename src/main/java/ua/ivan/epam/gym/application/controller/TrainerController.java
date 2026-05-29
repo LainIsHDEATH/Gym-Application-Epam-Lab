@@ -11,7 +11,6 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import ua.ivan.epam.gym.application.authentication.RequireAuth;
 import ua.ivan.epam.gym.application.dto.request.ChangeActiveStatusRequest;
 import ua.ivan.epam.gym.application.dto.request.RegisterTrainerProfileRequest;
 import ua.ivan.epam.gym.application.dto.request.UpdateTrainerProfileRequest;
@@ -51,7 +50,6 @@ public class TrainerController {
         return ResponseEntity.ok(trainerService.register(request));
     }
 
-    @RequireAuth
     @GetMapping("/{username}")
     @Operation(summary = "Get trainer profile by username")
     @ApiResponses(value = {
@@ -70,7 +68,6 @@ public class TrainerController {
         return ResponseEntity.ok(trainerService.getProfileByUsername(username));
     }
 
-    @RequireAuth
     @PutMapping
     @Operation(summary = "Update trainer profile")
     @ApiResponses(value = {
@@ -90,7 +87,6 @@ public class TrainerController {
         return ResponseEntity.ok(trainerService.update(request));
     }
 
-    @RequireAuth
     @GetMapping("/{username}/trainings")
     @Operation(summary = "Get trainer trainings list by criteria")
     @ApiResponses(value = {
@@ -117,7 +113,6 @@ public class TrainerController {
         ));
     }
 
-    @RequireAuth
     @PatchMapping("/status")
     @Operation(summary = "Activate or de-activate trainer profile")
     @ApiResponses(value = {
