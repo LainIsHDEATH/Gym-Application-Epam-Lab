@@ -16,6 +16,7 @@ import org.springframework.web.servlet.NoHandlerFoundException;
 import ua.ivan.epam.gym.application.exception.ErrorResponse;
 import ua.ivan.epam.gym.application.exception.FieldErrorResponse;
 import ua.ivan.epam.gym.application.exception.exceptions.AuthenticationException;
+import ua.ivan.epam.gym.application.exception.exceptions.UserBlockedException;
 
 import java.util.List;
 
@@ -165,6 +166,18 @@ public class GlobalExceptionHandler {
                 HttpStatus.INTERNAL_SERVER_ERROR.value(),
                 HttpStatus.INTERNAL_SERVER_ERROR.getReasonPhrase(),
                 "Internal server error",
+                request.getRequestURI()
+        );
+    }
+
+    @ExceptionHandler(UserBlockedException.class)
+    @ResponseStatus(HttpStatus.LOCKED)
+    public ErrorResponse handleUserBlockedException(UserBlockedException exception,
+                                                    HttpServletRequest request) {
+        return ErrorResponse.of(
+                HttpStatus.LOCKED.value(),
+                HttpStatus.LOCKED.getReasonPhrase(),
+                exception.getMessage(),
                 request.getRequestURI()
         );
     }

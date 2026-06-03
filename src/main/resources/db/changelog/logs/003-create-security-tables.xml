@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                      http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.25.xsd">
+
+    <changeSet id="003-create-login-attempts-table" author="Ivan">
+        <createTable tableName="login_attempts">
+            <column name="user_id" type="BIGINT">
+                <constraints primaryKey="true"
+                             primaryKeyName="pk_login_attempts"
+                             nullable="false"/>
+            </column>
+
+            <column name="failed_attempts" type="INTEGER">
+                <constraints nullable="false"/>
+            </column>
+
+            <column name="blocked_until" type="TIMESTAMP WITH TIME ZONE"/>
+
+            <column name="last_failed_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addForeignKeyConstraint constraintName="fk_login_attempts_users"
+                                 baseTableName="login_attempts"
+                                 baseColumnNames="user_id"
+                                 referencedTableName="users"
+                                 referencedColumnNames="id"
+                                 onDelete="CASCADE"/>
+    </changeSet>
+
+    <changeSet id="004-create-blacklisted-tokens-table" author="Ivan">
+        <createTable tableName="blacklisted_tokens">
+            <column name="token_hash" type="VARCHAR(64)">
+                <constraints primaryKey="true"
+                             primaryKeyName="pk_blacklisted_tokens"
+                             nullable="false"/>
+            </column>
+
+            <column name="expires_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+    </changeSet>
+
+</databaseChangeLog>

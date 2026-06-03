@@ -6,6 +6,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import ua.ivan.epam.gym.application.dto.request.ChangeActiveStatusRequest;
 import ua.ivan.epam.gym.application.dto.request.RegisterTrainerProfileRequest;
 import ua.ivan.epam.gym.application.dto.request.UpdateTrainerProfileRequest;
@@ -15,7 +16,6 @@ import ua.ivan.epam.gym.application.dto.response.TrainerProfileResponse;
 import ua.ivan.epam.gym.application.dto.response.TrainerShortResponse;
 import ua.ivan.epam.gym.application.dto.response.TrainingTypeResponse;
 import ua.ivan.epam.gym.application.mapper.TrainerMapper;
-import ua.ivan.epam.gym.application.mapper.UserMapper;
 import ua.ivan.epam.gym.application.model.Trainee;
 import ua.ivan.epam.gym.application.model.Trainer;
 import ua.ivan.epam.gym.application.model.TrainingType;
@@ -58,10 +58,10 @@ class TrainerServiceTest {
     private PasswordGenerator passwordGenerator;
 
     @Mock
-    private UserMapper userMapper;
+    private TrainerMapper trainerMapper;
 
     @Mock
-    private TrainerMapper trainerMapper;
+    private PasswordEncoder passwordEncoder;
 
     @InjectMocks
     private TrainerService trainerService;
@@ -76,11 +76,6 @@ class TrainerServiceTest {
 
         TrainingType specialization = createTrainingType(1L, "Fitness");
 
-        RegistrationResponse response = new RegistrationResponse(
-                "Mike.Brown",
-                "password12"
-        );
-
         when(trainingTypeRepository.findById(1L))
                 .thenReturn(Optional.of(specialization));
 
@@ -89,6 +84,9 @@ class TrainerServiceTest {
 
         when(passwordGenerator.generate())
                 .thenReturn("password12");
+
+        when(passwordEncoder.encode("password12"))
+                .thenReturn("encodedPassword12");
 
         when(userRepository.save(any(User.class))).thenAnswer(invocation -> {
             User user = invocation.getArgument(0);
@@ -102,25 +100,21 @@ class TrainerServiceTest {
             return trainer;
         });
 
-        when(userMapper.toRegistrationResponse(any(User.class)))
-                .thenReturn(response);
-
         RegistrationResponse result = trainerService.register(request);
 
-        assertSame(response, result);
         assertEquals("Mike.Brown", result.username());
         assertEquals("password12", result.password());
 
         verify(trainingTypeRepository).findById(1L);
-
         verify(usernameGenerator).generate(eq("Mike"), eq("Brown"), any());
         verify(passwordGenerator).generate();
+        verify(passwordEncoder).encode("password12");
 
         verify(userRepository).save(argThat(user ->
                 user.getFirstName().equals("Mike")
                         && user.getLastName().equals("Brown")
                         && user.getUsername().equals("Mike.Brown")
-                        && user.getPassword().equals("password12")
+                        && user.getPassword().equals("encodedPassword12")
                         && user.getIsActive()
         ));
 
@@ -129,8 +123,6 @@ class TrainerServiceTest {
                         && trainer.getUser().getUsername().equals("Mike.Brown")
                         && trainer.getSpecialization() == specialization
         ));
-
-        verify(userMapper).toRegistrationResponse(any(User.class));
     }
 
     @Test
@@ -142,11 +134,6 @@ class TrainerServiceTest {
         );
 
         TrainingType specialization = createTrainingType(1L, "Fitness");
-
-        RegistrationResponse response = new RegistrationResponse(
-                "Mike.Brown1",
-                "password12"
-        );
 
         when(trainingTypeRepository.findById(1L))
                 .thenReturn(Optional.of(specialization));
@@ -166,6 +153,9 @@ class TrainerServiceTest {
         when(passwordGenerator.generate())
                 .thenReturn("password12");
 
+        when(passwordEncoder.encode("password12"))
+                .thenReturn("encodedPassword12");
+
         when(userRepository.save(any(User.class))).thenAnswer(invocation -> {
             User user = invocation.getArgument(0);
             user.setId(10L);
@@ -178,15 +168,20 @@ class TrainerServiceTest {
             return trainer;
         });
 
-        when(userMapper.toRegistrationResponse(any(User.class)))
-                .thenReturn(response);
-
         RegistrationResponse result = trainerService.register(request);
 
         assertEquals("Mike.Brown1", result.username());
+        assertEquals("password12", result.password());
 
         verify(userRepository).existsByUsername("Mike.Brown");
         verify(usernameGenerator).generate(eq("Mike"), eq("Brown"), any());
+        verify(passwordGenerator).generate();
+        verify(passwordEncoder).encode("password12");
+
+        verify(userRepository).save(argThat(user ->
+                user.getUsername().equals("Mike.Brown1")
+                        && user.getPassword().equals("encodedPassword12")
+        ));
     }
 
     @Test
@@ -212,7 +207,7 @@ class TrainerServiceTest {
         verify(trainerRepository, never()).save(any());
         verify(usernameGenerator, never()).generate(anyString(), anyString(), any());
         verify(passwordGenerator, never()).generate();
-        verifyNoInteractions(userMapper);
+        verifyNoInteractions(passwordEncoder);
     }
 
     @Test
@@ -472,8 +467,6 @@ class TrainerServiceTest {
 
     @Test
     void getTrainersNotAssignedToTraineeShouldReturnMappedTrainersWhenTraineeExists() {
-        Trainee trainee = createTrainee(1L, "John.Smith");
-
         Trainer trainer1 = createTrainer(1L, "Mike.Brown", 1L, "Fitness");
         Trainer trainer2 = createTrainer(2L, "Alice.White", 2L, "Yoga");
 
@@ -507,8 +500,6 @@ class TrainerServiceTest {
 
     @Test
     void getTrainersNotAssignedToTraineeShouldReturnEmptyListWhenNoTrainersFound() {
-        Trainee trainee = createTrainee(1L, "John.Smith");
-
         when(traineeRepository.existsByUsername("John.Smith"))
                 .thenReturn(true);
 
@@ -551,22 +542,16 @@ class TrainerServiceTest {
         trainer.setUser(createUser(id + 100, username));
         trainer.setSpecialization(createTrainingType(specializationId, specializationName));
 
-//        trainer.getUser().setTrainer(trainer);
-
         return trainer;
     }
 
     private Trainee createTrainee(Long id, String username) {
-        Trainee trainee = Trainee.builder()
+        return Trainee.builder()
                 .id(id)
                 .user(createUser(id + 200, username))
                 .dateOfBirth(LocalDate.of(2000, 5, 10))
                 .address("London")
                 .build();
-
-//        trainee.getUser().setTrainee(trainee);
-
-        return trainee;
     }
 
     private User createUser(Long id, String username) {

@@ -6,6 +6,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import ua.ivan.epam.gym.application.dto.request.ChangeActiveStatusRequest;
 import ua.ivan.epam.gym.application.dto.request.RegisterTraineeProfileRequest;
 import ua.ivan.epam.gym.application.dto.request.UpdateTraineeProfileRequest;
@@ -16,7 +17,6 @@ import ua.ivan.epam.gym.application.dto.response.TrainerShortResponse;
 import ua.ivan.epam.gym.application.dto.response.TrainingTypeResponse;
 import ua.ivan.epam.gym.application.mapper.TraineeMapper;
 import ua.ivan.epam.gym.application.mapper.TrainerMapper;
-import ua.ivan.epam.gym.application.mapper.UserMapper;
 import ua.ivan.epam.gym.application.model.Trainee;
 import ua.ivan.epam.gym.application.model.Trainer;
 import ua.ivan.epam.gym.application.model.TrainingType;
@@ -55,13 +55,13 @@ class TraineeServiceTest {
     private PasswordGenerator passwordGenerator;
 
     @Mock
-    private UserMapper userMapper;
-
-    @Mock
     private TraineeMapper traineeMapper;
 
     @Mock
     private TrainerMapper trainerMapper;
+
+    @Mock
+    private PasswordEncoder passwordEncoder;
 
     @InjectMocks
     private TraineeService traineeService;
@@ -75,16 +75,14 @@ class TraineeServiceTest {
                 "London"
         );
 
-        RegistrationResponse response = new RegistrationResponse(
-                "John.Smith",
-                "password12"
-        );
-
         when(usernameGenerator.generate(eq("John"), eq("Smith"), any()))
                 .thenReturn("John.Smith");
 
         when(passwordGenerator.generate())
                 .thenReturn("password12");
+
+        when(passwordEncoder.encode("password12"))
+                .thenReturn("encodedPassword12");
 
         when(userRepository.save(any(User.class))).thenAnswer(invocation -> {
             User user = invocation.getArgument(0);
@@ -98,23 +96,20 @@ class TraineeServiceTest {
             return trainee;
         });
 
-        when(userMapper.toRegistrationResponse(any(User.class)))
-                .thenReturn(response);
-
         RegistrationResponse result = traineeService.register(request);
 
-        assertSame(response, result);
         assertEquals("John.Smith", result.username());
         assertEquals("password12", result.password());
 
         verify(usernameGenerator).generate(eq("John"), eq("Smith"), any());
         verify(passwordGenerator).generate();
+        verify(passwordEncoder).encode("password12");
 
         verify(userRepository).save(argThat(user ->
                 user.getFirstName().equals("John")
                         && user.getLastName().equals("Smith")
                         && user.getUsername().equals("John.Smith")
-                        && user.getPassword().equals("password12")
+                        && user.getPassword().equals("encodedPassword12")
                         && user.getIsActive()
         ));
 
@@ -124,8 +119,6 @@ class TraineeServiceTest {
                         && trainee.getDateOfBirth().equals(LocalDate.of(2000, 5, 10))
                         && trainee.getAddress().equals("London")
         ));
-
-        verify(userMapper).toRegistrationResponse(any(User.class));
     }
 
     @Test
@@ -135,11 +128,6 @@ class TraineeServiceTest {
                 "Smith",
                 LocalDate.of(2000, 5, 10),
                 "London"
-        );
-
-        RegistrationResponse response = new RegistrationResponse(
-                "John.Smith1",
-                "password12"
         );
 
         when(usernameGenerator.generate(eq("John"), eq("Smith"), any()))
@@ -157,6 +145,9 @@ class TraineeServiceTest {
         when(passwordGenerator.generate())
                 .thenReturn("password12");
 
+        when(passwordEncoder.encode("password12"))
+                .thenReturn("encodedPassword12");
+
         when(userRepository.save(any(User.class))).thenAnswer(invocation -> {
             User user = invocation.getArgument(0);
             user.setId(1L);
@@ -169,15 +160,20 @@ class TraineeServiceTest {
             return trainee;
         });
 
-        when(userMapper.toRegistrationResponse(any(User.class)))
-                .thenReturn(response);
-
         RegistrationResponse result = traineeService.register(request);
 
         assertEquals("John.Smith1", result.username());
+        assertEquals("password12", result.password());
 
         verify(userRepository).existsByUsername("John.Smith");
         verify(usernameGenerator).generate(eq("John"), eq("Smith"), any());
+        verify(passwordGenerator).generate();
+        verify(passwordEncoder).encode("password12");
+
+        verify(userRepository).save(argThat(user ->
+                user.getUsername().equals("John.Smith1")
+                        && user.getPassword().equals("encodedPassword12")
+        ));
     }
 
     @Test

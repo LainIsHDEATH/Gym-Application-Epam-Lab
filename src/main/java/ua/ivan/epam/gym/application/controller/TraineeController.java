@@ -11,7 +11,6 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import ua.ivan.epam.gym.application.authentication.RequireAuth;
 import ua.ivan.epam.gym.application.dto.request.*;
 import ua.ivan.epam.gym.application.dto.response.*;
 import ua.ivan.epam.gym.application.service.TraineeService;
@@ -48,7 +47,6 @@ public class TraineeController {
         return ResponseEntity.ok(traineeService.register(request));
     }
 
-    @RequireAuth
     @GetMapping("/{username}")
     @Operation(summary = "Get trainee profile by username")
     @ApiResponses(value = {
@@ -67,7 +65,6 @@ public class TraineeController {
         return ResponseEntity.ok(traineeService.getProfileByUsername(username));
     }
 
-    @RequireAuth
     @PutMapping
     @Operation(summary = "Update trainee profile")
     @ApiResponses(value = {
@@ -87,7 +84,6 @@ public class TraineeController {
         return ResponseEntity.ok(traineeService.update(request));
     }
 
-    @RequireAuth
     @DeleteMapping("/{username}")
     @Operation(summary = "Delete trainee profile by username")
     @ApiResponses(value = {
@@ -102,7 +98,6 @@ public class TraineeController {
         return ResponseEntity.ok().build();
     }
 
-    @RequireAuth
     @GetMapping("/{username}/not-assigned-trainers")
     @Operation(summary = "Get active trainers not assigned to trainee")
     @ApiResponses(value = {
@@ -121,7 +116,6 @@ public class TraineeController {
         return ResponseEntity.ok(trainerService.getTrainersNotAssignedToTrainee(username));
     }
 
-    @RequireAuth
     @PutMapping("/trainers")
     @Operation(summary = "Update trainee trainers list")
     @ApiResponses(value = {
@@ -141,7 +135,6 @@ public class TraineeController {
         return ResponseEntity.ok(traineeService.updateTrainersList(request));
     }
 
-    @RequireAuth
     @GetMapping("/{username}/trainings")
     @Operation(summary = "Get trainee trainings list by criteria")
     @ApiResponses(value = {
@@ -170,7 +163,6 @@ public class TraineeController {
         ));
     }
 
-    @RequireAuth
     @PatchMapping("/status")
     @Operation(summary = "Activate or de-activate trainee profile")
     @ApiResponses(value = {

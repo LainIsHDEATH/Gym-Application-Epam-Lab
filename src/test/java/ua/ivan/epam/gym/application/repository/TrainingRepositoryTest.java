@@ -6,6 +6,7 @@ import jakarta.persistence.TypedQuery;
 import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.persistence.criteria.CriteriaQuery;
 import jakarta.persistence.criteria.Expression;
+import jakarta.persistence.criteria.Fetch;
 import jakarta.persistence.criteria.Join;
 import jakarta.persistence.criteria.JoinType;
 import jakarta.persistence.criteria.Order;
@@ -67,6 +68,21 @@ class TrainingRepositoryTest {
 
     @Mock
     private Join<Training, TrainingType> trainingTypeJoin;
+
+    @Mock
+    private Fetch<Training, Trainee> traineeFetch;
+
+    @Mock
+    private Fetch<Trainee, User> traineeUserFetch;
+
+    @Mock
+    private Fetch<Training, Trainer> trainerFetch;
+
+    @Mock
+    private Fetch<Trainer, User> trainerUserFetch;
+
+    @Mock
+    private Fetch<Training, TrainingType> trainingTypeFetch;
 
     @Mock
     private Path<String> usernamePath;
@@ -344,7 +360,6 @@ class TrainingRepositoryTest {
         mockTraineeUsernameFilter("John.Smith");
 
         mockTrainerJoinsOnly();
-
         mockTrainingTypeJoinOnly();
 
         mockCriteriaFinalQuery(List.of(training));
@@ -449,42 +464,31 @@ class TrainingRepositoryTest {
         when(em.getCriteriaBuilder()).thenReturn(cb);
         when(cb.createQuery(Training.class)).thenReturn(cq);
         when(cq.from(Training.class)).thenReturn(trainingRoot);
+
+        mockTrainingFetches();
     }
 
     @SuppressWarnings({"unchecked", "rawtypes"})
-    private void mockTraineeCriteriaJoins() {
-        doReturn(traineeJoin)
+    private void mockTrainingFetches() {
+        doReturn(traineeFetch)
                 .when(trainingRoot)
-                .join("trainee", JoinType.INNER);
+                .fetch("trainee", JoinType.INNER);
 
-        doReturn(traineeUserJoin)
-                .when(traineeJoin)
-                .join("user", JoinType.INNER);
+        doReturn(traineeUserFetch)
+                .when(traineeFetch)
+                .fetch("user", JoinType.INNER);
 
-        doReturn(usernamePath)
-                .when(traineeUserJoin)
-                .get("username");
-
-        when(cb.equal(usernamePath, "John.Smith"))
-                .thenReturn(predicate);
-    }
-
-    @SuppressWarnings({"unchecked", "rawtypes"})
-    private void mockTrainerCriteriaJoins() {
-        doReturn(trainerJoin)
+        doReturn(trainerFetch)
                 .when(trainingRoot)
-                .join("trainer", JoinType.INNER);
+                .fetch("trainer", JoinType.INNER);
 
-        doReturn(trainerUserJoin)
-                .when(trainerJoin)
-                .join("user", JoinType.INNER);
+        doReturn(trainerUserFetch)
+                .when(trainerFetch)
+                .fetch("user", JoinType.INNER);
 
-        doReturn(usernamePath)
-                .when(trainerUserJoin)
-                .get("username");
-
-        when(cb.equal(usernamePath, "Trainer.One"))
-                .thenReturn(predicate);
+        doReturn(trainingTypeFetch)
+                .when(trainingRoot)
+                .fetch("trainingType", JoinType.INNER);
     }
 
     @SuppressWarnings({"unchecked", "rawtypes"})
@@ -584,6 +588,7 @@ class TrainingRepositoryTest {
         when(cb.desc(trainingDatePath)).thenReturn(order);
 
         when(cq.select(trainingRoot)).thenReturn(cq);
+        when(cq.distinct(true)).thenReturn(cq);
         when(cq.where(any(Predicate[].class))).thenReturn(cq);
         when(cq.orderBy(order)).thenReturn(cq);
 
