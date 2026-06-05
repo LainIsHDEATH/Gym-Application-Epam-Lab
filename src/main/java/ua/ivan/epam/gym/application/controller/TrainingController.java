@@ -33,4 +33,18 @@ public class TrainingController {
 
         return ResponseEntity.ok().build();
     }
+
+    @DeleteMapping("/{id}")
+    @Operation(summary = "Cancel training")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Successfully cancelled training"),
+            @ApiResponse(responseCode = "401", description = "You are not authorized to cancel the resource"),
+            @ApiResponse(responseCode = "404", description = "Training was not found"),
+            @ApiResponse(responseCode = "500", description = "Application failed to process the request")
+    })
+    public ResponseEntity<Void> cancelTraining(@PathVariable Long id) {
+        trainingService.cancel(id);
+
+        return ResponseEntity.ok().build();
+    }
 }

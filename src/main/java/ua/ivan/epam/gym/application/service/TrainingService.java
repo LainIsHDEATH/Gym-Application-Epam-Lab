@@ -136,4 +136,26 @@ public class TrainingService {
                 .map(trainingMapper::toTrainerTrainingResponse)
                 .toList();
     }
+
+    @Transactional
+    public void cancel(Long id) {
+        log.info("Cancelling training. trainingId={}", id);
+
+        Training training = trainingRepository.findById(id)
+                .orElseThrow(() -> {
+                    log.warn("Cannot cancel training. Training not found. trainingId={}", id);
+                    return new EntityNotFoundException("Training not found");
+                });
+
+        trainingRepository.deleteById(id);
+
+        trainerWorkloadIntegrationService.sendTrainerWorkload(
+                trainerWorkloadMapper.toRequest(training, WorkloadActionType.DELETE)
+        );
+
+        log.info("Cancelled training. trainingId={}, traineeId={}, trainerId={}",
+                training.getId(),
+                training.getTrainee().getId(),
+                training.getTrainer().getId());
+    }
 }
