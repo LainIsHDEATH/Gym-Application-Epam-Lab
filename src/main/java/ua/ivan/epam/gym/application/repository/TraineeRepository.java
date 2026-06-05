@@ -101,6 +101,17 @@ public class TraineeRepository implements CrudRepo<Long, Trainee> {
         }
     }
 
+    public void deleteByUsername (String username){
+        Trainee trainee = em.find(Trainee.class, username);
+
+        try {
+            em.remove(trainee);
+            log.debug("Deleted trainee. username={}", username);
+        } catch (IllegalArgumentException e) {
+            log.warn("Cannot delete trainee. Trainee not found. username={}", username);
+        }
+    }
+
     public boolean existsById(Long id) {
         return em.createQuery("""
                 SELECT count(t)
