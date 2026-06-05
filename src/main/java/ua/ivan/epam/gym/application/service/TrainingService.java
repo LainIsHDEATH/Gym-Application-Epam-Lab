@@ -7,7 +7,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ua.ivan.epam.gym.application.actuator.metrics.CountGymEvent;
 import ua.ivan.epam.gym.application.actuator.metrics.GymMetric;
-import ua.ivan.epam.gym.application.client.TrainerWorkloadClient;
 import ua.ivan.epam.gym.application.dto.request.AddTrainingRequest;
 import ua.ivan.epam.gym.application.dto.request.WorkloadActionType;
 import ua.ivan.epam.gym.application.dto.response.TraineeTrainingResponse;
@@ -35,7 +34,7 @@ public class TrainingService {
     private final TrainingMapper trainingMapper;
     private final TrainerWorkloadMapper trainerWorkloadMapper;
 
-    private final TrainerWorkloadClient trainerWorkloadClient;
+    private final TrainerWorkloadIntegrationService trainerWorkloadIntegrationService;
 
     @CountGymEvent(GymMetric.TRAINING_CREATED)
     @Transactional
@@ -72,7 +71,7 @@ public class TrainingService {
 
         Training savedTraining = trainingRepository.save(training);
 
-        trainerWorkloadClient.updateTrainerWorkload(
+        trainerWorkloadIntegrationService.sendTrainerWorkload(
                 trainerWorkloadMapper.toRequest(savedTraining, WorkloadActionType.ADD)
         );
 
