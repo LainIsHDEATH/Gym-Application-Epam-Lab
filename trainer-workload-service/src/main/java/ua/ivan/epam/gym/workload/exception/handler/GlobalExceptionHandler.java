@@ -14,12 +14,27 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
 import org.springframework.web.servlet.NoHandlerFoundException;
 import ua.ivan.epam.gym.workload.exception.ErrorResponse;
 import ua.ivan.epam.gym.workload.exception.FieldErrorResponse;
+import ua.ivan.epam.gym.workload.exception.exceptions.EntityNotFoundException;
 
 import java.util.List;
 
 @RestControllerAdvice
 @Slf4j
 public class GlobalExceptionHandler {
+
+    @ExceptionHandler(EntityNotFoundException.class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    public ErrorResponse handleEntityNotFoundException(EntityNotFoundException exception,
+                                                       HttpServletRequest request) {
+        log.warn("Entity not found. message={}", exception.getMessage());
+
+        return ErrorResponse.of(
+                HttpStatus.NOT_FOUND.value(),
+                HttpStatus.NOT_FOUND.getReasonPhrase(),
+                exception.getMessage(),
+                request.getRequestURI()
+        );
+    }
 
     @ExceptionHandler(NoHandlerFoundException.class)
     @ResponseStatus(HttpStatus.NOT_FOUND)

@@ -9,16 +9,20 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import ua.ivan.epam.gym.application.dto.request.ChangeActiveStatusRequest;
 import ua.ivan.epam.gym.application.dto.request.RegisterTraineeProfileRequest;
+import ua.ivan.epam.gym.application.dto.request.TrainerWorkloadRequest;
 import ua.ivan.epam.gym.application.dto.request.UpdateTraineeProfileRequest;
 import ua.ivan.epam.gym.application.dto.request.UpdateTraineeTrainersRequest;
+import ua.ivan.epam.gym.application.dto.request.WorkloadActionType;
 import ua.ivan.epam.gym.application.dto.response.RegistrationResponse;
 import ua.ivan.epam.gym.application.dto.response.TraineeProfileResponse;
 import ua.ivan.epam.gym.application.dto.response.TrainerShortResponse;
 import ua.ivan.epam.gym.application.dto.response.TrainingTypeResponse;
 import ua.ivan.epam.gym.application.mapper.TraineeMapper;
 import ua.ivan.epam.gym.application.mapper.TrainerMapper;
+import ua.ivan.epam.gym.application.mapper.TrainerWorkloadMapper;
 import ua.ivan.epam.gym.application.model.Trainee;
 import ua.ivan.epam.gym.application.model.Trainer;
+import ua.ivan.epam.gym.application.model.Training;
 import ua.ivan.epam.gym.application.model.TrainingType;
 import ua.ivan.epam.gym.application.model.User;
 import ua.ivan.epam.gym.application.repository.TraineeRepository;
@@ -28,8 +32,10 @@ import ua.ivan.epam.gym.application.utils.PasswordGenerator;
 import ua.ivan.epam.gym.application.utils.UsernameGenerator;
 
 import java.time.LocalDate;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Predicate;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -61,7 +67,13 @@ class TraineeServiceTest {
     private TrainerMapper trainerMapper;
 
     @Mock
+    private TrainerWorkloadMapper trainerWorkloadMapper;
+
+    @Mock
     private PasswordEncoder passwordEncoder;
+
+    @Mock
+    private TrainerWorkloadIntegrationService trainerWorkloadIntegrationService;
 
     @InjectMocks
     private TraineeService traineeService;
@@ -376,10 +388,89 @@ class TraineeServiceTest {
     }
 
     @Test
-    void deleteShouldDelegateToRepository() {
+    void deleteShouldDeleteTraineeWhenExists() {
+        Trainee trainee = createTrainee();
+
+        when(traineeRepository.findById(1L))
+                .thenReturn(Optional.of(trainee));
+
         traineeService.delete(1L);
 
+        verify(traineeRepository).findById(1L);
         verify(traineeRepository).deleteById(1L);
+        verifyNoInteractions(trainerWorkloadMapper);
+        verifyNoInteractions(trainerWorkloadIntegrationService);
+    }
+
+    @Test
+    void deleteShouldDoNothingWhenTraineeDoesNotExist() {
+        when(traineeRepository.findById(99L))
+                .thenReturn(Optional.empty());
+
+        assertDoesNotThrow(() -> traineeService.delete(99L));
+
+        verify(traineeRepository).findById(99L);
+        verify(traineeRepository, never()).deleteById(anyLong());
+        verifyNoInteractions(trainerWorkloadMapper);
+        verifyNoInteractions(trainerWorkloadIntegrationService);
+    }
+
+    @Test
+    void deleteShouldSendDeleteWorkloadEventsForTraineeTrainings() {
+        Trainee trainee = createTrainee();
+        Trainer trainer = createTrainer(2L, "Mike.Brown");
+
+        Training training1 = createTraining(
+                10L,
+                trainee,
+                trainer,
+                LocalDate.of(2026, 5, 5),
+                60
+        );
+
+        Training training2 = createTraining(
+                11L,
+                trainee,
+                trainer,
+                LocalDate.of(2026, 5, 6),
+                45
+        );
+
+        trainee.setTrainings(new HashSet<>(Set.of(training1, training2)));
+
+        TrainerWorkloadRequest workloadRequest1 = createWorkloadRequest(
+                "Mike.Brown",
+                LocalDate.of(2026, 5, 5),
+                60,
+                WorkloadActionType.DELETE
+        );
+
+        TrainerWorkloadRequest workloadRequest2 = createWorkloadRequest(
+                "Mike.Brown",
+                LocalDate.of(2026, 5, 6),
+                45,
+                WorkloadActionType.DELETE
+        );
+
+        when(traineeRepository.findById(1L))
+                .thenReturn(Optional.of(trainee));
+
+        when(trainerWorkloadMapper.toRequest(training1, WorkloadActionType.DELETE))
+                .thenReturn(workloadRequest1);
+
+        when(trainerWorkloadMapper.toRequest(training2, WorkloadActionType.DELETE))
+                .thenReturn(workloadRequest2);
+
+        traineeService.delete(1L);
+
+        verify(traineeRepository).findById(1L);
+        verify(traineeRepository).deleteById(1L);
+
+        verify(trainerWorkloadMapper).toRequest(training1, WorkloadActionType.DELETE);
+        verify(trainerWorkloadMapper).toRequest(training2, WorkloadActionType.DELETE);
+
+        verify(trainerWorkloadIntegrationService).sendTrainerWorkload(workloadRequest1);
+        verify(trainerWorkloadIntegrationService).sendTrainerWorkload(workloadRequest2);
     }
 
     @Test
@@ -392,23 +483,82 @@ class TraineeServiceTest {
         traineeService.deleteByUsername("John.Smith");
 
         verify(traineeRepository).findByUsername("John.Smith");
-        verify(traineeRepository).deleteById(1L);
+        verify(traineeRepository).deleteByUsername("John.Smith");
+        verify(traineeRepository, never()).deleteById(anyLong());
+        verifyNoInteractions(trainerWorkloadMapper);
+        verifyNoInteractions(trainerWorkloadIntegrationService);
     }
 
     @Test
-    void deleteByUsernameShouldThrowExceptionWhenTraineeDoesNotExist() {
+    void deleteByUsernameShouldDoNothingWhenTraineeDoesNotExist() {
         when(traineeRepository.findByUsername("Unknown.User"))
                 .thenReturn(Optional.empty());
 
-        EntityNotFoundException exception = assertThrows(
-                EntityNotFoundException.class,
-                () -> traineeService.deleteByUsername("Unknown.User")
-        );
-
-        assertEquals("Trainee not found", exception.getMessage());
+        assertDoesNotThrow(() -> traineeService.deleteByUsername("Unknown.User"));
 
         verify(traineeRepository).findByUsername("Unknown.User");
+        verify(traineeRepository, never()).deleteByUsername(anyString());
         verify(traineeRepository, never()).deleteById(anyLong());
+        verifyNoInteractions(trainerWorkloadMapper);
+        verifyNoInteractions(trainerWorkloadIntegrationService);
+    }
+
+    @Test
+    void deleteByUsernameShouldSendDeleteWorkloadEventsForTraineeTrainings() {
+        Trainee trainee = createTrainee();
+        Trainer trainer = createTrainer(2L, "Mike.Brown");
+
+        Training training1 = createTraining(
+                10L,
+                trainee,
+                trainer,
+                LocalDate.of(2026, 5, 5),
+                60
+        );
+
+        Training training2 = createTraining(
+                11L,
+                trainee,
+                trainer,
+                LocalDate.of(2026, 5, 6),
+                45
+        );
+
+        trainee.setTrainings(new HashSet<>(Set.of(training1, training2)));
+
+        TrainerWorkloadRequest workloadRequest1 = createWorkloadRequest(
+                "Mike.Brown",
+                LocalDate.of(2026, 5, 5),
+                60,
+                WorkloadActionType.DELETE
+        );
+
+        TrainerWorkloadRequest workloadRequest2 = createWorkloadRequest(
+                "Mike.Brown",
+                LocalDate.of(2026, 5, 6),
+                45,
+                WorkloadActionType.DELETE
+        );
+
+        when(traineeRepository.findByUsername("John.Smith"))
+                .thenReturn(Optional.of(trainee));
+
+        when(trainerWorkloadMapper.toRequest(training1, WorkloadActionType.DELETE))
+                .thenReturn(workloadRequest1);
+
+        when(trainerWorkloadMapper.toRequest(training2, WorkloadActionType.DELETE))
+                .thenReturn(workloadRequest2);
+
+        traineeService.deleteByUsername("John.Smith");
+
+        verify(traineeRepository).findByUsername("John.Smith");
+        verify(traineeRepository).deleteByUsername("John.Smith");
+
+        verify(trainerWorkloadMapper).toRequest(training1, WorkloadActionType.DELETE);
+        verify(trainerWorkloadMapper).toRequest(training2, WorkloadActionType.DELETE);
+
+        verify(trainerWorkloadIntegrationService).sendTrainerWorkload(workloadRequest1);
+        verify(trainerWorkloadIntegrationService).sendTrainerWorkload(workloadRequest2);
     }
 
     @Test
@@ -623,6 +773,22 @@ class TraineeServiceTest {
                 .build();
     }
 
+    private Training createTraining(Long id,
+                                    Trainee trainee,
+                                    Trainer trainer,
+                                    LocalDate trainingDate,
+                                    Integer duration) {
+        return Training.builder()
+                .id(id)
+                .trainee(trainee)
+                .trainer(trainer)
+                .trainingType(trainer.getSpecialization())
+                .trainingName("Morning Cardio")
+                .trainingDate(trainingDate)
+                .trainingDuration(duration)
+                .build();
+    }
+
     private User createUser(Long id, String username) {
         String[] parts = username.split("\\.");
 
@@ -663,6 +829,23 @@ class TraineeServiceTest {
                 parts[0],
                 parts[1],
                 new TrainingTypeResponse(1L, "Cardio")
+        );
+    }
+
+    private TrainerWorkloadRequest createWorkloadRequest(String trainerUsername,
+                                                         LocalDate trainingDate,
+                                                         Integer duration,
+                                                         WorkloadActionType actionType) {
+        String[] parts = trainerUsername.split("\\.");
+
+        return new TrainerWorkloadRequest(
+                trainerUsername,
+                parts[0],
+                parts[1],
+                true,
+                trainingDate,
+                duration,
+                actionType
         );
     }
 }

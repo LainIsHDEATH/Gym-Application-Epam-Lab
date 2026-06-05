@@ -8,6 +8,7 @@ import ua.ivan.epam.gym.workload.dto.response.MonthSummaryResponse;
 import ua.ivan.epam.gym.workload.dto.response.TrainerMonthlyWorkloadResponse;
 import ua.ivan.epam.gym.workload.dto.response.TrainerWorkloadResponse;
 import ua.ivan.epam.gym.workload.dto.response.YearSummaryResponse;
+import ua.ivan.epam.gym.workload.exception.exceptions.EntityNotFoundException;
 import ua.ivan.epam.gym.workload.model.TrainerWorkload;
 import ua.ivan.epam.gym.workload.model.WorkloadActionType;
 import ua.ivan.epam.gym.workload.repository.TrainerWorkloadRepository;
@@ -64,7 +65,7 @@ public class TrainerWorkloadService {
         TrainerWorkload workload = trainerWorkloadRepository.findByUsername(username)
                 .orElseThrow(() -> {
                     log.warn("Trainer workload not found. trainerUsername={}", username);
-                    return new IllegalArgumentException("Trainer workload not found. username=" + username);
+                    return new EntityNotFoundException("Trainer workload not found. username=" + username);
                 });
 
         return new TrainerMonthlyWorkloadResponse(
@@ -82,7 +83,7 @@ public class TrainerWorkloadService {
         TrainerWorkload workload = trainerWorkloadRepository.findByUsername(username)
                 .orElseThrow(() -> {
                     log.warn("Trainer workload not found. trainerUsername={}", username);
-                    return new IllegalArgumentException("Trainer workload not found. username=" + username);
+                    return new EntityNotFoundException("Trainer workload not found. username=" + username);
                 });
 
         List<YearSummaryResponse> years = workload.getYears()
