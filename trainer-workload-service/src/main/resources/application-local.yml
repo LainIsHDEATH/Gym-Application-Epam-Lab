@@ -1,0 +1,10 @@
+security:
+  jwt:
+    secret: MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=
+    expiration-minutes: 60
+
+logging:
+  level:
+    root: INFO
+    ua.ivan.epam.gym.workload: DEBUG
+    org.hibernate.SQL: DEBUG

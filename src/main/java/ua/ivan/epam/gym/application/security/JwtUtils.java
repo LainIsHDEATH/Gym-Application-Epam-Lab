@@ -9,6 +9,7 @@ import org.springframework.stereotype.Component;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.List;
 
 @Component
 @RequiredArgsConstructor
@@ -32,6 +33,23 @@ public class JwtUtils {
                         .stream()
                         .map(Object::toString)
                         .toList())
+                .build();
+
+        JwsHeader header = JwsHeader.with(MacAlgorithm.HS256).build();
+
+        return jwtEncoder.encode(JwtEncoderParameters.from(header, claims))
+                .getTokenValue();
+    }
+
+    public String generateServiceToken() {
+        Instant now = Instant.now();
+        Instant expiresAt = now.plus(Duration.ofMinutes(5));
+
+        JwtClaimsSet claims = JwtClaimsSet.builder()
+                .subject("gym-application")
+                .issuedAt(now)
+                .expiresAt(expiresAt)
+                .claim("authorities", List.of("ROLE_SERVICE"))
                 .build();
 
         JwsHeader header = JwsHeader.with(MacAlgorithm.HS256).build();
