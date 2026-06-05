@@ -1,3 +1,10 @@
+eureka:
+  client:
+    serviceUrl:
+      defaultZone: ${EUREKA_URI}
+  instance:
+    preferIpAddress: true
+
 security:
   jwt:
     secret: ${JWT_SECRET}

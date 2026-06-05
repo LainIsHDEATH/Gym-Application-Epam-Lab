@@ -21,23 +21,6 @@ import java.util.List;
 @Slf4j
 public class GlobalExceptionHandler {
 
-    @ExceptionHandler(IllegalArgumentException.class)
-    @ResponseStatus(HttpStatus.NOT_FOUND)
-    public ErrorResponse handleIllegalArgumentException(
-            IllegalArgumentException exception,
-            HttpServletRequest request
-    ) {
-        log.warn("Resource not found. path={}, message={}",
-                request.getRequestURI(), exception.getMessage());
-
-        return ErrorResponse.of(
-                404,
-                "Not Found",
-                exception.getMessage(),
-                request.getRequestURI()
-        );
-    }
-
     @ExceptionHandler(NoHandlerFoundException.class)
     @ResponseStatus(HttpStatus.NOT_FOUND)
     public ErrorResponse handleNoHandlerFoundException(NoHandlerFoundException exception,
