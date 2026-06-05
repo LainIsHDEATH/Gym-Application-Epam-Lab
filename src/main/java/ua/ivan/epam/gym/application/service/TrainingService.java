@@ -7,9 +7,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ua.ivan.epam.gym.application.actuator.metrics.CountGymEvent;
 import ua.ivan.epam.gym.application.actuator.metrics.GymMetric;
+import ua.ivan.epam.gym.application.client.TrainerWorkloadClient;
 import ua.ivan.epam.gym.application.dto.request.AddTrainingRequest;
+import ua.ivan.epam.gym.application.dto.request.WorkloadActionType;
 import ua.ivan.epam.gym.application.dto.response.TraineeTrainingResponse;
 import ua.ivan.epam.gym.application.dto.response.TrainerTrainingResponse;
+import ua.ivan.epam.gym.application.mapper.TrainerWorkloadMapper;
 import ua.ivan.epam.gym.application.mapper.TrainingMapper;
 import ua.ivan.epam.gym.application.model.Trainee;
 import ua.ivan.epam.gym.application.model.Trainer;
@@ -30,6 +33,9 @@ public class TrainingService {
     private final TrainerRepository trainerRepository;
 
     private final TrainingMapper trainingMapper;
+    private final TrainerWorkloadMapper trainerWorkloadMapper;
+
+    private final TrainerWorkloadClient trainerWorkloadClient;
 
     @CountGymEvent(GymMetric.TRAINING_CREATED)
     @Transactional
@@ -65,6 +71,10 @@ public class TrainingService {
         trainee.addTrainer(trainer);
 
         Training savedTraining = trainingRepository.save(training);
+
+        trainerWorkloadClient.updateTrainerWorkload(
+                trainerWorkloadMapper.toRequest(savedTraining, WorkloadActionType.ADD)
+        );
 
         log.info("Created training. trainingId={}, traineeId={}, trainerId={}",
                 savedTraining.getId(), savedTraining.getTrainee().getId(), savedTraining.getTrainer().getId());
