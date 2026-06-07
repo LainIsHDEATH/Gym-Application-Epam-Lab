@@ -42,4 +42,10 @@ public class TrainerWorkload {
         return years.getOrDefault(year, Map.of())
                 .getOrDefault(month, 0);
     }
+
+    public void updateTrainerInfo(String firstName, String lastName, Boolean isActive) {
+        this.trainerFirstName = firstName;
+        this.trainerLastName = lastName;
+        this.isActive = isActive;
+    }
 }
