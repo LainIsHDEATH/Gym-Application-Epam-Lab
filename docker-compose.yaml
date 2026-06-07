@@ -10,6 +10,65 @@ services:
       - "5431:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres -d gym_db" ]
+      interval: 20s
+      timeout: 5s
+      retries: 5
+
+  eureka-discovery-server:
+    build: ./discovery-server
+    container_name: eureka-discovery-server
+    ports:
+      - "8761:8761"
+    environment:
+      SPRING_PROFILES_ACTIVE: dev
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8761/actuator/health" ]
+      interval: 20s
+      timeout: 5s
+      retries: 5
+
+  trainer-workload-service:
+    build: ./trainer-workload-service
+    container_name: trainer-workload-service
+    ports:
+      - "8081:8081"
+    environment:
+      SPRING_PROFILES_ACTIVE: dev
+      EUREKA_URI: http://eureka-discovery-server:8761/eureka
+      JWT_SECRET: MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=
+    depends_on:
+      eureka-discovery-server:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8081/actuator/health" ]
+      interval: 20s
+      timeout: 5s
+      retries: 5
+
+  gym-application:
+    build: .
+    container_name: gym-application
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_PROFILES_ACTIVE: dev
+      DB_URL: jdbc:postgresql://db:5432/gym_db
+      DB_USERNAME: postgres
+      DB_PASSWORD: postgres
+      EUREKA_URI: http://eureka-discovery-server:8761/eureka
+      JWT_SECRET: MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=
+    depends_on:
+      db:
+        condition: service_healthy
+      eureka-discovery-server:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8080/actuator/health" ]
+      interval: 20s
+      timeout: 5s
+      retries: 5
 
 volumes:
   pgdata:
