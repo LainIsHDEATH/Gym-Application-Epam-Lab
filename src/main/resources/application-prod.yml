@@ -20,6 +20,11 @@ spring:
     user: ${DB_USERNAME}
     password: ${DB_PASSWORD}
 
+  activemq:
+    broker-url: ${ACTIVEMQ_BROKER_URL}
+    user: ${ACTIVEMQ_USER}
+    password: ${ACTIVEMQ_PASSWORD}
+
 security:
   jwt:
     secret: ${JWT_SECRET}

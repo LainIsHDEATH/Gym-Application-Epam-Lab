@@ -12,7 +12,24 @@ services:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
       test: [ "CMD-SHELL", "pg_isready -U postgres -d gym_db" ]
-      interval: 20s
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  activemq:
+    image: apache/activemq-classic:6.1.3
+    container_name: activemq
+    ports:
+      - "61616:61616"
+      - "8161:8161"
+    volumes:
+      - activemqdata:/opt/apache-activemq/data
+    environment:
+      ACTIVEMQ_ADMIN_LOGIN: admin
+      ACTIVEMQ_ADMIN_PASSWORD: admin
+    healthcheck:
+      test: [ "CMD-SHELL", "curl -fsu admin:admin http://localhost:8161/admin/" ]
+      interval: 10s
       timeout: 5s
       retries: 5
 
@@ -36,9 +53,14 @@ services:
       - "8081:8081"
     environment:
       SPRING_PROFILES_ACTIVE: dev
+      ACTIVEMQ_BROKER_URL: tcp://activemq:61616
+      ACTIVEMQ_USER: admin
+      ACTIVEMQ_PASSWORD: admin
       EUREKA_URI: http://eureka-discovery-server:8761/eureka
       JWT_SECRET: MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=
     depends_on:
+      activemq:
+        condition: service_healthy
       eureka-discovery-server:
         condition: service_healthy
     healthcheck:
@@ -57,10 +79,15 @@ services:
       DB_URL: jdbc:postgresql://db:5432/gym_db
       DB_USERNAME: postgres
       DB_PASSWORD: postgres
+      ACTIVEMQ_BROKER_URL: tcp://activemq:61616
+      ACTIVEMQ_USER: admin
+      ACTIVEMQ_PASSWORD: admin
       EUREKA_URI: http://eureka-discovery-server:8761/eureka
       JWT_SECRET: MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=
     depends_on:
       db:
+        condition: service_healthy
+      activemq:
         condition: service_healthy
       eureka-discovery-server:
         condition: service_healthy
@@ -72,3 +99,4 @@ services:
 
 volumes:
   pgdata:
+  activemqdata:

@@ -17,6 +17,7 @@ import ua.ivan.epam.gym.application.exception.ErrorResponse;
 import ua.ivan.epam.gym.application.exception.FieldErrorResponse;
 import ua.ivan.epam.gym.application.exception.exceptions.AuthenticationException;
 import ua.ivan.epam.gym.application.exception.exceptions.UserBlockedException;
+import ua.ivan.epam.gym.application.exception.exceptions.WorkloadMessageSerializationException;
 
 import java.util.List;
 
@@ -156,6 +157,34 @@ public class GlobalExceptionHandler {
         );
     }
 
+    @ExceptionHandler(UserBlockedException.class)
+    @ResponseStatus(HttpStatus.LOCKED)
+    public ErrorResponse handleUserBlockedException(UserBlockedException exception,
+                                                    HttpServletRequest request) {
+        return ErrorResponse.of(
+                HttpStatus.LOCKED.value(),
+                HttpStatus.LOCKED.getReasonPhrase(),
+                exception.getMessage(),
+                request.getRequestURI()
+        );
+    }
+
+    @ExceptionHandler(WorkloadMessageSerializationException.class)
+    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+    public ErrorResponse handleWorkloadMessageSerializationException(
+            WorkloadMessageSerializationException exception,
+            HttpServletRequest request
+    ) {
+        log.error("Failed to serialize workload message. path={}", request.getRequestURI(), exception);
+
+        return ErrorResponse.of(
+                HttpStatus.INTERNAL_SERVER_ERROR.value(),
+                HttpStatus.INTERNAL_SERVER_ERROR.getReasonPhrase(),
+                "Application failed to process workload message",
+                request.getRequestURI()
+        );
+    }
+
     @ExceptionHandler(Exception.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public ErrorResponse handleUnexpectedException(Exception exception,
@@ -166,18 +195,6 @@ public class GlobalExceptionHandler {
                 HttpStatus.INTERNAL_SERVER_ERROR.value(),
                 HttpStatus.INTERNAL_SERVER_ERROR.getReasonPhrase(),
                 "Internal server error",
-                request.getRequestURI()
-        );
-    }
-
-    @ExceptionHandler(UserBlockedException.class)
-    @ResponseStatus(HttpStatus.LOCKED)
-    public ErrorResponse handleUserBlockedException(UserBlockedException exception,
-                                                    HttpServletRequest request) {
-        return ErrorResponse.of(
-                HttpStatus.LOCKED.value(),
-                HttpStatus.LOCKED.getReasonPhrase(),
-                exception.getMessage(),
                 request.getRequestURI()
         );
     }
