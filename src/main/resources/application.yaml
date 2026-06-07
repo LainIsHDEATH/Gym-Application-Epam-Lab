@@ -15,13 +15,14 @@ spring:
     enabled: true
     change-log: classpath:db/changelog/db.changelog-master.xml
 
+  jms:
+    template:
+      qos-enabled: true
+      delivery-mode: persistent
+
 messaging:
   queues:
     trainer-workload: trainer.workload.queue
-
-trainer-workload:
-  integration:
-    type: activemq
 
 security:
   jwt:
