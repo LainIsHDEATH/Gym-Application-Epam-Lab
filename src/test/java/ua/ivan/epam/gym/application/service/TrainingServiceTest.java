@@ -3,15 +3,18 @@ package ua.ivan.epam.gym.application.service;
 import jakarta.persistence.EntityNotFoundException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 import ua.ivan.epam.gym.application.dto.request.AddTrainingRequest;
 import ua.ivan.epam.gym.application.dto.request.TrainerWorkloadRequest;
 import ua.ivan.epam.gym.application.dto.request.WorkloadActionType;
 import ua.ivan.epam.gym.application.dto.response.TraineeTrainingResponse;
 import ua.ivan.epam.gym.application.dto.response.TrainerTrainingResponse;
 import ua.ivan.epam.gym.application.dto.response.TrainingTypeResponse;
+import ua.ivan.epam.gym.application.event.TrainerWorkloadChangedEvent;
 import ua.ivan.epam.gym.application.mapper.TrainerWorkloadMapper;
 import ua.ivan.epam.gym.application.mapper.TrainingMapper;
 import ua.ivan.epam.gym.application.model.Trainee;
@@ -50,7 +53,7 @@ class TrainingServiceTest {
     private TrainerWorkloadMapper trainerWorkloadMapper;
 
     @Mock
-    private TrainerWorkloadIntegrationService trainerWorkloadIntegrationService;
+    private ApplicationEventPublisher eventPublisher;
 
     @InjectMocks
     private TrainingService trainingService;
@@ -110,7 +113,8 @@ class TrainingServiceTest {
         verify(trainerRepository).findByUsername("Mike.Brown");
         verify(trainingRepository).save(any(Training.class));
         verify(trainerWorkloadMapper).toRequest(result, WorkloadActionType.ADD);
-        verify(trainerWorkloadIntegrationService).sendTrainerWorkload(workloadRequest);
+
+        verifyTrainerWorkloadEventPublished(workloadRequest);
     }
 
     @Test
@@ -159,7 +163,8 @@ class TrainingServiceTest {
 
         verify(trainingRepository).save(any(Training.class));
         verify(trainerWorkloadMapper).toRequest(result, WorkloadActionType.ADD);
-        verify(trainerWorkloadIntegrationService).sendTrainerWorkload(workloadRequest);
+
+        verifyTrainerWorkloadEventPublished(workloadRequest);
     }
 
     @Test
@@ -213,7 +218,8 @@ class TrainingServiceTest {
 
         verify(trainingRepository).save(any(Training.class));
         verify(trainerWorkloadMapper).toRequest(result, WorkloadActionType.ADD);
-        verify(trainerWorkloadIntegrationService).sendTrainerWorkload(workloadRequest);
+
+        verifyTrainerWorkloadEventPublished(workloadRequest);
     }
 
     @Test
@@ -263,7 +269,8 @@ class TrainingServiceTest {
 
         verify(trainingRepository).save(any(Training.class));
         verify(trainerWorkloadMapper).toRequest(result, WorkloadActionType.ADD);
-        verify(trainerWorkloadIntegrationService).sendTrainerWorkload(workloadRequest);
+
+        verifyTrainerWorkloadEventPublished(workloadRequest);
     }
 
     @Test
@@ -290,7 +297,7 @@ class TrainingServiceTest {
         verify(trainerRepository, never()).findByUsername(anyString());
         verify(trainingRepository, never()).save(any());
         verifyNoInteractions(trainerWorkloadMapper);
-        verifyNoInteractions(trainerWorkloadIntegrationService);
+        verifyNoInteractions(eventPublisher);
     }
 
     @Test
@@ -322,7 +329,7 @@ class TrainingServiceTest {
         verify(trainerRepository).findByUsername("Unknown.Trainer");
         verify(trainingRepository, never()).save(any());
         verifyNoInteractions(trainerWorkloadMapper);
-        verifyNoInteractions(trainerWorkloadIntegrationService);
+        verifyNoInteractions(eventPublisher);
     }
 
     @Test
@@ -542,7 +549,7 @@ class TrainingServiceTest {
     }
 
     @Test
-    void cancelShouldDeleteTrainingAndSendDeleteWorkloadEvent() {
+    void cancelShouldDeleteTrainingAndPublishDeleteWorkloadEvent() {
         Training training = createTraining();
 
         TrainerWorkloadRequest workloadRequest = createWorkloadRequest(
@@ -563,7 +570,8 @@ class TrainingServiceTest {
         verify(trainingRepository).findById(1L);
         verify(trainingRepository).deleteById(1L);
         verify(trainerWorkloadMapper).toRequest(training, WorkloadActionType.DELETE);
-        verify(trainerWorkloadIntegrationService).sendTrainerWorkload(workloadRequest);
+
+        verifyTrainerWorkloadEventPublished(workloadRequest);
     }
 
     @Test
@@ -581,7 +589,19 @@ class TrainingServiceTest {
         verify(trainingRepository).findById(99L);
         verify(trainingRepository, never()).deleteById(anyLong());
         verifyNoInteractions(trainerWorkloadMapper);
-        verifyNoInteractions(trainerWorkloadIntegrationService);
+        verifyNoInteractions(eventPublisher);
+    }
+
+    private void verifyTrainerWorkloadEventPublished(TrainerWorkloadRequest expectedRequest) {
+        ArgumentCaptor<TrainerWorkloadChangedEvent> eventCaptor =
+                ArgumentCaptor.forClass(TrainerWorkloadChangedEvent.class);
+
+        verify(eventPublisher).publishEvent(eventCaptor.capture());
+
+        TrainerWorkloadChangedEvent event = eventCaptor.getValue();
+
+        assertNotNull(event);
+        assertSame(expectedRequest, event.request());
     }
 
     private Training createTraining() {

@@ -3,9 +3,11 @@ package ua.ivan.epam.gym.application.service;
 import jakarta.persistence.EntityNotFoundException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import ua.ivan.epam.gym.application.dto.request.ChangeActiveStatusRequest;
 import ua.ivan.epam.gym.application.dto.request.RegisterTraineeProfileRequest;
@@ -17,6 +19,7 @@ import ua.ivan.epam.gym.application.dto.response.RegistrationResponse;
 import ua.ivan.epam.gym.application.dto.response.TraineeProfileResponse;
 import ua.ivan.epam.gym.application.dto.response.TrainerShortResponse;
 import ua.ivan.epam.gym.application.dto.response.TrainingTypeResponse;
+import ua.ivan.epam.gym.application.event.TrainerWorkloadChangedEvent;
 import ua.ivan.epam.gym.application.mapper.TraineeMapper;
 import ua.ivan.epam.gym.application.mapper.TrainerMapper;
 import ua.ivan.epam.gym.application.mapper.TrainerWorkloadMapper;
@@ -73,7 +76,7 @@ class TraineeServiceTest {
     private PasswordEncoder passwordEncoder;
 
     @Mock
-    private TrainerWorkloadIntegrationService trainerWorkloadIntegrationService;
+    private ApplicationEventPublisher eventPublisher;
 
     @InjectMocks
     private TraineeService traineeService;
@@ -131,6 +134,9 @@ class TraineeServiceTest {
                         && trainee.getDateOfBirth().equals(LocalDate.of(2000, 5, 10))
                         && trainee.getAddress().equals("London")
         ));
+
+        verifyNoInteractions(eventPublisher);
+        verifyNoInteractions(trainerWorkloadMapper);
     }
 
     @Test
@@ -186,6 +192,9 @@ class TraineeServiceTest {
                 user.getUsername().equals("John.Smith1")
                         && user.getPassword().equals("encodedPassword12")
         ));
+
+        verifyNoInteractions(eventPublisher);
+        verifyNoInteractions(trainerWorkloadMapper);
     }
 
     @Test
@@ -388,8 +397,9 @@ class TraineeServiceTest {
     }
 
     @Test
-    void deleteShouldDeleteTraineeWhenExists() {
+    void deleteShouldDeleteTraineeWhenExistsAndHasNoTrainings() {
         Trainee trainee = createTrainee();
+        trainee.setTrainings(new HashSet<>());
 
         when(traineeRepository.findById(1L))
                 .thenReturn(Optional.of(trainee));
@@ -399,7 +409,7 @@ class TraineeServiceTest {
         verify(traineeRepository).findById(1L);
         verify(traineeRepository).deleteById(1L);
         verifyNoInteractions(trainerWorkloadMapper);
-        verifyNoInteractions(trainerWorkloadIntegrationService);
+        verifyNoInteractions(eventPublisher);
     }
 
     @Test
@@ -412,11 +422,11 @@ class TraineeServiceTest {
         verify(traineeRepository).findById(99L);
         verify(traineeRepository, never()).deleteById(anyLong());
         verifyNoInteractions(trainerWorkloadMapper);
-        verifyNoInteractions(trainerWorkloadIntegrationService);
+        verifyNoInteractions(eventPublisher);
     }
 
     @Test
-    void deleteShouldSendDeleteWorkloadEventsForTraineeTrainings() {
+    void deleteShouldPublishDeleteWorkloadEventsForTraineeTrainings() {
         Trainee trainee = createTrainee();
         Trainer trainer = createTrainer(2L, "Mike.Brown");
 
@@ -469,13 +479,13 @@ class TraineeServiceTest {
         verify(trainerWorkloadMapper).toRequest(training1, WorkloadActionType.DELETE);
         verify(trainerWorkloadMapper).toRequest(training2, WorkloadActionType.DELETE);
 
-        verify(trainerWorkloadIntegrationService).sendTrainerWorkload(workloadRequest1);
-        verify(trainerWorkloadIntegrationService).sendTrainerWorkload(workloadRequest2);
+        verifyTrainerWorkloadEventsPublished(workloadRequest1, workloadRequest2);
     }
 
     @Test
-    void deleteByUsernameShouldDeleteTraineeWhenExists() {
+    void deleteByUsernameShouldDeleteTraineeWhenExistsAndHasNoTrainings() {
         Trainee trainee = createTrainee();
+        trainee.setTrainings(new HashSet<>());
 
         when(traineeRepository.findByUsername("John.Smith"))
                 .thenReturn(Optional.of(trainee));
@@ -486,7 +496,7 @@ class TraineeServiceTest {
         verify(traineeRepository).deleteByUsername("John.Smith");
         verify(traineeRepository, never()).deleteById(anyLong());
         verifyNoInteractions(trainerWorkloadMapper);
-        verifyNoInteractions(trainerWorkloadIntegrationService);
+        verifyNoInteractions(eventPublisher);
     }
 
     @Test
@@ -500,11 +510,11 @@ class TraineeServiceTest {
         verify(traineeRepository, never()).deleteByUsername(anyString());
         verify(traineeRepository, never()).deleteById(anyLong());
         verifyNoInteractions(trainerWorkloadMapper);
-        verifyNoInteractions(trainerWorkloadIntegrationService);
+        verifyNoInteractions(eventPublisher);
     }
 
     @Test
-    void deleteByUsernameShouldSendDeleteWorkloadEventsForTraineeTrainings() {
+    void deleteByUsernameShouldPublishDeleteWorkloadEventsForTraineeTrainings() {
         Trainee trainee = createTrainee();
         Trainer trainer = createTrainer(2L, "Mike.Brown");
 
@@ -557,8 +567,7 @@ class TraineeServiceTest {
         verify(trainerWorkloadMapper).toRequest(training1, WorkloadActionType.DELETE);
         verify(trainerWorkloadMapper).toRequest(training2, WorkloadActionType.DELETE);
 
-        verify(trainerWorkloadIntegrationService).sendTrainerWorkload(workloadRequest1);
-        verify(trainerWorkloadIntegrationService).sendTrainerWorkload(workloadRequest2);
+        verifyTrainerWorkloadEventsPublished(workloadRequest1, workloadRequest2);
     }
 
     @Test
@@ -754,6 +763,24 @@ class TraineeServiceTest {
         verify(traineeRepository).findByUsername("John.Smith");
         verify(trainerRepository).findByUsername("Unknown.Trainer");
         verifyNoInteractions(trainerMapper);
+    }
+
+    private void verifyTrainerWorkloadEventsPublished(TrainerWorkloadRequest... expectedRequests) {
+        ArgumentCaptor<TrainerWorkloadChangedEvent> eventCaptor =
+                ArgumentCaptor.forClass(TrainerWorkloadChangedEvent.class);
+
+        verify(eventPublisher, times(expectedRequests.length)).publishEvent(eventCaptor.capture());
+
+        List<TrainerWorkloadChangedEvent> events = eventCaptor.getAllValues();
+
+        assertEquals(expectedRequests.length, events.size());
+
+        for (TrainerWorkloadRequest expectedRequest : expectedRequests) {
+            assertTrue(
+                    events.stream().anyMatch(event -> event.request() == expectedRequest),
+                    "Expected event was not published for request: " + expectedRequest
+            );
+        }
     }
 
     private Trainee createTrainee() {
