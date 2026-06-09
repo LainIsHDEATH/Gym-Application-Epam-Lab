@@ -11,6 +11,10 @@ spring:
     user: ${ACTIVEMQ_USER}
     password: ${ACTIVEMQ_PASSWORD}
 
+  data:
+    mongodb:
+      uri: ${SPRING_DATA_MONGODB_URI}
+
 security:
   jwt:
     secret: ${JWT_SECRET}
