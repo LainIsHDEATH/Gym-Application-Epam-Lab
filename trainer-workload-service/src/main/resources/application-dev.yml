@@ -1,0 +1,17 @@
+eureka:
+  client:
+    serviceUrl:
+      defaultZone: ${EUREKA_URI:http://localhost:8761/eureka}
+  instance:
+    preferIpAddress: true
+
+security:
+  jwt:
+    secret: ${JWT_SECRET:MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=}
+    expiration-minutes: ${JWT_EXPIRATION_MINUTES:60}
+
+logging:
+  level:
+    root: INFO
+    ua.ivan.epam.gym.workload: DEBUG
+    org.hibernate.SQL: INFO

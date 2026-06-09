@@ -8,17 +8,16 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ua.ivan.epam.gym.application.actuator.metrics.CountGymEvent;
 import ua.ivan.epam.gym.application.actuator.metrics.GymMetric;
-import ua.ivan.epam.gym.application.dto.request.ChangeActiveStatusRequest;
-import ua.ivan.epam.gym.application.dto.request.RegisterTraineeProfileRequest;
-import ua.ivan.epam.gym.application.dto.request.UpdateTraineeProfileRequest;
-import ua.ivan.epam.gym.application.dto.request.UpdateTraineeTrainersRequest;
+import ua.ivan.epam.gym.application.dto.request.*;
 import ua.ivan.epam.gym.application.dto.response.RegistrationResponse;
 import ua.ivan.epam.gym.application.dto.response.TraineeProfileResponse;
 import ua.ivan.epam.gym.application.dto.response.TrainerShortResponse;
 import ua.ivan.epam.gym.application.mapper.TraineeMapper;
 import ua.ivan.epam.gym.application.mapper.TrainerMapper;
+import ua.ivan.epam.gym.application.mapper.TrainerWorkloadMapper;
 import ua.ivan.epam.gym.application.model.Trainee;
 import ua.ivan.epam.gym.application.model.Trainer;
+import ua.ivan.epam.gym.application.model.Training;
 import ua.ivan.epam.gym.application.model.User;
 import ua.ivan.epam.gym.application.repository.TraineeRepository;
 import ua.ivan.epam.gym.application.repository.TrainerRepository;
@@ -44,7 +43,10 @@ public class TraineeService {
 
     private final TraineeMapper traineeMapper;
     private final TrainerMapper trainerMapper;
+    private final TrainerWorkloadMapper trainerWorkloadMapper;
     private final PasswordEncoder passwordEncoder;
+
+    private final TrainerWorkloadIntegrationService trainerWorkloadIntegrationService;
 
     @CountGymEvent(GymMetric.TRAINEE_REGISTRATION)
     @Transactional
@@ -143,9 +145,18 @@ public class TraineeService {
     public void delete(Long id) {
         log.info("Deleting trainee profile. traineeId={}", id);
 
-        traineeRepository.deleteById(id);
+        Trainee trainee = traineeRepository.findById(id)
+                .orElse(null);
+        if (trainee != null) {
+            Set<Training> trainings = trainee.getTrainings();
+            traineeRepository.deleteById(id);
 
-        log.info("Deleted trainee profile. traineeId={}", id);
+            trainings.forEach(training -> trainerWorkloadIntegrationService.sendTrainerWorkload(
+                    trainerWorkloadMapper.toRequest(training, WorkloadActionType.DELETE)
+            ));
+
+            log.info("Deleted trainee profile. traineeId={}", id);
+        }
     }
 
     @Transactional
@@ -153,14 +164,17 @@ public class TraineeService {
         log.info("Deleting trainee profile. username={}", username);
 
         Trainee trainee = traineeRepository.findByUsername(username)
-                .orElseThrow(() -> {
-                    log.warn("Cannot delete trainee. Trainee not found. username={}", username);
-                    return new EntityNotFoundException("Trainee not found");
-                });
+                .orElse(null);
+        if (trainee != null) {
+            Set<Training> trainings = trainee.getTrainings();
+            traineeRepository.deleteByUsername(username);
 
-        traineeRepository.deleteById(trainee.getId());
+            trainings.forEach(training -> trainerWorkloadIntegrationService.sendTrainerWorkload(
+                    trainerWorkloadMapper.toRequest(training, WorkloadActionType.DELETE)
+            ));
 
-        log.info("Deleted trainee profile. traineeId={}, username={}", trainee.getId(), username);
+            log.info("Deleted trainee profile. traineeId={}, username={}", trainee.getId(), username);
+        }
     }
 
     @Transactional

@@ -7,9 +7,12 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import ua.ivan.epam.gym.application.dto.request.AddTrainingRequest;
+import ua.ivan.epam.gym.application.dto.request.TrainerWorkloadRequest;
+import ua.ivan.epam.gym.application.dto.request.WorkloadActionType;
 import ua.ivan.epam.gym.application.dto.response.TraineeTrainingResponse;
 import ua.ivan.epam.gym.application.dto.response.TrainerTrainingResponse;
 import ua.ivan.epam.gym.application.dto.response.TrainingTypeResponse;
+import ua.ivan.epam.gym.application.mapper.TrainerWorkloadMapper;
 import ua.ivan.epam.gym.application.mapper.TrainingMapper;
 import ua.ivan.epam.gym.application.model.Trainee;
 import ua.ivan.epam.gym.application.model.Trainer;
@@ -43,6 +46,12 @@ class TrainingServiceTest {
     @Mock
     private TrainingMapper trainingMapper;
 
+    @Mock
+    private TrainerWorkloadMapper trainerWorkloadMapper;
+
+    @Mock
+    private TrainerWorkloadIntegrationService trainerWorkloadIntegrationService;
+
     @InjectMocks
     private TrainingService trainingService;
 
@@ -62,6 +71,13 @@ class TrainingServiceTest {
         Trainer trainer = createTrainer(2L, "Mike.Brown", 3L, "Cardio");
         TrainingType expectedTrainingType = trainer.getSpecialization();
 
+        TrainerWorkloadRequest workloadRequest = createWorkloadRequest(
+                "Mike.Brown",
+                date,
+                60,
+                WorkloadActionType.ADD
+        );
+
         when(traineeRepository.findByUsername("John.Smith"))
                 .thenReturn(Optional.of(trainee));
 
@@ -73,6 +89,9 @@ class TrainingServiceTest {
             training.setId(10L);
             return training;
         });
+
+        when(trainerWorkloadMapper.toRequest(any(Training.class), eq(WorkloadActionType.ADD)))
+                .thenReturn(workloadRequest);
 
         Training result = trainingService.create(request);
 
@@ -90,6 +109,8 @@ class TrainingServiceTest {
         verify(traineeRepository).findByUsername("John.Smith");
         verify(trainerRepository).findByUsername("Mike.Brown");
         verify(trainingRepository).save(any(Training.class));
+        verify(trainerWorkloadMapper).toRequest(result, WorkloadActionType.ADD);
+        verify(trainerWorkloadIntegrationService).sendTrainerWorkload(workloadRequest);
     }
 
     @Test
@@ -104,6 +125,13 @@ class TrainingServiceTest {
 
         Trainee trainee = createTrainee(1L, "John.Smith");
         Trainer trainer = createTrainer(2L, "Mike.Brown", 3L, "Cardio");
+
+        TrainerWorkloadRequest workloadRequest = createWorkloadRequest(
+                "Mike.Brown",
+                LocalDate.of(2026, 5, 5),
+                60,
+                WorkloadActionType.ADD
+        );
 
         when(traineeRepository.findByUsername("John.Smith"))
                 .thenReturn(Optional.of(trainee));
@@ -122,11 +150,16 @@ class TrainingServiceTest {
             return training;
         });
 
+        when(trainerWorkloadMapper.toRequest(any(Training.class), eq(WorkloadActionType.ADD)))
+                .thenReturn(workloadRequest);
+
         Training result = trainingService.create(request);
 
         assertEquals(10L, result.getId());
 
         verify(trainingRepository).save(any(Training.class));
+        verify(trainerWorkloadMapper).toRequest(result, WorkloadActionType.ADD);
+        verify(trainerWorkloadIntegrationService).sendTrainerWorkload(workloadRequest);
     }
 
     @Test
@@ -143,6 +176,13 @@ class TrainingServiceTest {
 
         Trainee trainee = createTrainee(1L, "John.Smith");
         Trainer trainer = createTrainer(2L, "Mike.Brown", 3L, "Cardio");
+
+        TrainerWorkloadRequest workloadRequest = createWorkloadRequest(
+                "Mike.Brown",
+                date,
+                60,
+                WorkloadActionType.ADD
+        );
 
         when(traineeRepository.findByUsername("John.Smith"))
                 .thenReturn(Optional.of(trainee));
@@ -164,11 +204,16 @@ class TrainingServiceTest {
             return training;
         });
 
+        when(trainerWorkloadMapper.toRequest(any(Training.class), eq(WorkloadActionType.ADD)))
+                .thenReturn(workloadRequest);
+
         Training result = trainingService.create(request);
 
         assertEquals(10L, result.getId());
 
         verify(trainingRepository).save(any(Training.class));
+        verify(trainerWorkloadMapper).toRequest(result, WorkloadActionType.ADD);
+        verify(trainerWorkloadIntegrationService).sendTrainerWorkload(workloadRequest);
     }
 
     @Test
@@ -186,6 +231,13 @@ class TrainingServiceTest {
 
         trainee.addTrainer(trainer);
 
+        TrainerWorkloadRequest workloadRequest = createWorkloadRequest(
+                "Mike.Brown",
+                LocalDate.of(2026, 5, 5),
+                60,
+                WorkloadActionType.ADD
+        );
+
         when(traineeRepository.findByUsername("John.Smith"))
                 .thenReturn(Optional.of(trainee));
 
@@ -198,6 +250,9 @@ class TrainingServiceTest {
             return training;
         });
 
+        when(trainerWorkloadMapper.toRequest(any(Training.class), eq(WorkloadActionType.ADD)))
+                .thenReturn(workloadRequest);
+
         Training result = trainingService.create(request);
 
         assertEquals(10L, result.getId());
@@ -207,6 +262,8 @@ class TrainingServiceTest {
         assertTrue(trainer.getTrainees().contains(trainee));
 
         verify(trainingRepository).save(any(Training.class));
+        verify(trainerWorkloadMapper).toRequest(result, WorkloadActionType.ADD);
+        verify(trainerWorkloadIntegrationService).sendTrainerWorkload(workloadRequest);
     }
 
     @Test
@@ -232,6 +289,8 @@ class TrainingServiceTest {
         verify(traineeRepository).findByUsername("Unknown.Trainee");
         verify(trainerRepository, never()).findByUsername(anyString());
         verify(trainingRepository, never()).save(any());
+        verifyNoInteractions(trainerWorkloadMapper);
+        verifyNoInteractions(trainerWorkloadIntegrationService);
     }
 
     @Test
@@ -262,6 +321,8 @@ class TrainingServiceTest {
         verify(traineeRepository).findByUsername("John.Smith");
         verify(trainerRepository).findByUsername("Unknown.Trainer");
         verify(trainingRepository, never()).save(any());
+        verifyNoInteractions(trainerWorkloadMapper);
+        verifyNoInteractions(trainerWorkloadIntegrationService);
     }
 
     @Test
@@ -480,6 +541,49 @@ class TrainingServiceTest {
         verifyNoInteractions(trainingMapper);
     }
 
+    @Test
+    void cancelShouldDeleteTrainingAndSendDeleteWorkloadEvent() {
+        Training training = createTraining();
+
+        TrainerWorkloadRequest workloadRequest = createWorkloadRequest(
+                "Mike.Brown",
+                LocalDate.of(2026, 5, 5),
+                60,
+                WorkloadActionType.DELETE
+        );
+
+        when(trainingRepository.findById(1L))
+                .thenReturn(Optional.of(training));
+
+        when(trainerWorkloadMapper.toRequest(training, WorkloadActionType.DELETE))
+                .thenReturn(workloadRequest);
+
+        assertDoesNotThrow(() -> trainingService.cancel(1L));
+
+        verify(trainingRepository).findById(1L);
+        verify(trainingRepository).deleteById(1L);
+        verify(trainerWorkloadMapper).toRequest(training, WorkloadActionType.DELETE);
+        verify(trainerWorkloadIntegrationService).sendTrainerWorkload(workloadRequest);
+    }
+
+    @Test
+    void cancelShouldThrowExceptionWhenTrainingDoesNotExist() {
+        when(trainingRepository.findById(99L))
+                .thenReturn(Optional.empty());
+
+        EntityNotFoundException exception = assertThrows(
+                EntityNotFoundException.class,
+                () -> trainingService.cancel(99L)
+        );
+
+        assertEquals("Training not found", exception.getMessage());
+
+        verify(trainingRepository).findById(99L);
+        verify(trainingRepository, never()).deleteById(anyLong());
+        verifyNoInteractions(trainerWorkloadMapper);
+        verifyNoInteractions(trainerWorkloadIntegrationService);
+    }
+
     private Training createTraining() {
         Trainee trainee = createTrainee(1L, "John.Smith");
         Trainer trainer = createTrainer(2L, "Mike.Brown", 3L, "Cardio");
@@ -496,27 +600,23 @@ class TrainingServiceTest {
     }
 
     private Trainee createTrainee(Long id, String username) {
-        Trainee trainee = Trainee.builder()
+        return Trainee.builder()
                 .id(id)
                 .user(createUser(id + 100, username))
                 .dateOfBirth(LocalDate.of(2000, 5, 10))
                 .address("London")
                 .build();
-
-        return trainee;
     }
 
     private Trainer createTrainer(Long id,
                                   String username,
                                   Long specializationId,
                                   String specializationName) {
-        Trainer trainer = Trainer.builder()
+        return Trainer.builder()
                 .id(id)
                 .user(createUser(id + 200, username))
                 .specialization(createTrainingType(specializationId, specializationName))
                 .build();
-
-        return trainer;
     }
 
     private User createUser(Long id, String username) {
@@ -537,5 +637,22 @@ class TrainingServiceTest {
                 .id(id)
                 .trainingTypeName(name)
                 .build();
+    }
+
+    private TrainerWorkloadRequest createWorkloadRequest(String trainerUsername,
+                                                         LocalDate trainingDate,
+                                                         Integer duration,
+                                                         WorkloadActionType actionType) {
+        String[] parts = trainerUsername.split("\\.");
+
+        return new TrainerWorkloadRequest(
+                trainerUsername,
+                parts[0],
+                parts[1],
+                true,
+                trainingDate,
+                duration,
+                actionType
+        );
     }
 }

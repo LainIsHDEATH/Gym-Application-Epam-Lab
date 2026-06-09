@@ -8,8 +8,10 @@ import org.springframework.transaction.annotation.Transactional;
 import ua.ivan.epam.gym.application.actuator.metrics.CountGymEvent;
 import ua.ivan.epam.gym.application.actuator.metrics.GymMetric;
 import ua.ivan.epam.gym.application.dto.request.AddTrainingRequest;
+import ua.ivan.epam.gym.application.dto.request.WorkloadActionType;
 import ua.ivan.epam.gym.application.dto.response.TraineeTrainingResponse;
 import ua.ivan.epam.gym.application.dto.response.TrainerTrainingResponse;
+import ua.ivan.epam.gym.application.mapper.TrainerWorkloadMapper;
 import ua.ivan.epam.gym.application.mapper.TrainingMapper;
 import ua.ivan.epam.gym.application.model.Trainee;
 import ua.ivan.epam.gym.application.model.Trainer;
@@ -30,6 +32,9 @@ public class TrainingService {
     private final TrainerRepository trainerRepository;
 
     private final TrainingMapper trainingMapper;
+    private final TrainerWorkloadMapper trainerWorkloadMapper;
+
+    private final TrainerWorkloadIntegrationService trainerWorkloadIntegrationService;
 
     @CountGymEvent(GymMetric.TRAINING_CREATED)
     @Transactional
@@ -65,6 +70,10 @@ public class TrainingService {
         trainee.addTrainer(trainer);
 
         Training savedTraining = trainingRepository.save(training);
+
+        trainerWorkloadIntegrationService.sendTrainerWorkload(
+                trainerWorkloadMapper.toRequest(savedTraining, WorkloadActionType.ADD)
+        );
 
         log.info("Created training. trainingId={}, traineeId={}, trainerId={}",
                 savedTraining.getId(), savedTraining.getTrainee().getId(), savedTraining.getTrainer().getId());
@@ -126,5 +135,27 @@ public class TrainingService {
                 .stream()
                 .map(trainingMapper::toTrainerTrainingResponse)
                 .toList();
+    }
+
+    @Transactional
+    public void cancel(Long id) {
+        log.info("Cancelling training. trainingId={}", id);
+
+        Training training = trainingRepository.findById(id)
+                .orElseThrow(() -> {
+                    log.warn("Cannot cancel training. Training not found. trainingId={}", id);
+                    return new EntityNotFoundException("Training not found");
+                });
+
+        trainingRepository.deleteById(id);
+
+        trainerWorkloadIntegrationService.sendTrainerWorkload(
+                trainerWorkloadMapper.toRequest(training, WorkloadActionType.DELETE)
+        );
+
+        log.info("Cancelled training. trainingId={}, traineeId={}, trainerId={}",
+                training.getId(),
+                training.getTrainee().getId(),
+                training.getTrainer().getId());
     }
 }
