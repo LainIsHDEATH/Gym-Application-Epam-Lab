@@ -20,6 +20,8 @@ public class JwtUtils {
 
     @Value("${security.jwt.expiration-minutes}")
     private long expirationMinutes;
+    @Value("${security.jwt.service-token-expiration-minutes}")
+    private long serviceTokenExpirationMinutes;
 
     public String generateToken(UserDetails userDetails) {
         Instant now = Instant.now();
@@ -43,7 +45,7 @@ public class JwtUtils {
 
     public String generateServiceToken() {
         Instant now = Instant.now();
-        Instant expiresAt = now.plus(Duration.ofMinutes(5));
+        Instant expiresAt = now.plus(Duration.ofMinutes(serviceTokenExpirationMinutes));
 
         JwtClaimsSet claims = JwtClaimsSet.builder()
                 .subject("gym-application")

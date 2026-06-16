@@ -5,10 +5,15 @@ eureka:
   instance:
     preferIpAddress: true
 
+spring:
+  activemq:
+    broker-url: ${ACTIVEMQ_BROKER_URL}
+    user: ${ACTIVEMQ_USER}
+    password: ${ACTIVEMQ_PASSWORD}
+
 security:
   jwt:
     secret: ${JWT_SECRET}
-    expiration-minutes: ${JWT_EXPIRATION_MINUTES}
 
 logging:
   level:

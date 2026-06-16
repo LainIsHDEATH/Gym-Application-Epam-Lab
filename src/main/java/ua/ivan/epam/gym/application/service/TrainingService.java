@@ -3,6 +3,7 @@ package ua.ivan.epam.gym.application.service;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ua.ivan.epam.gym.application.actuator.metrics.CountGymEvent;
@@ -11,6 +12,7 @@ import ua.ivan.epam.gym.application.dto.request.AddTrainingRequest;
 import ua.ivan.epam.gym.application.dto.request.WorkloadActionType;
 import ua.ivan.epam.gym.application.dto.response.TraineeTrainingResponse;
 import ua.ivan.epam.gym.application.dto.response.TrainerTrainingResponse;
+import ua.ivan.epam.gym.application.event.TrainerWorkloadChangedEvent;
 import ua.ivan.epam.gym.application.mapper.TrainerWorkloadMapper;
 import ua.ivan.epam.gym.application.mapper.TrainingMapper;
 import ua.ivan.epam.gym.application.model.Trainee;
@@ -34,7 +36,7 @@ public class TrainingService {
     private final TrainingMapper trainingMapper;
     private final TrainerWorkloadMapper trainerWorkloadMapper;
 
-    private final TrainerWorkloadIntegrationService trainerWorkloadIntegrationService;
+    private final ApplicationEventPublisher eventPublisher;
 
     @CountGymEvent(GymMetric.TRAINING_CREATED)
     @Transactional
@@ -71,9 +73,9 @@ public class TrainingService {
 
         Training savedTraining = trainingRepository.save(training);
 
-        trainerWorkloadIntegrationService.sendTrainerWorkload(
+        eventPublisher.publishEvent(new TrainerWorkloadChangedEvent(
                 trainerWorkloadMapper.toRequest(savedTraining, WorkloadActionType.ADD)
-        );
+        ));
 
         log.info("Created training. trainingId={}, traineeId={}, trainerId={}",
                 savedTraining.getId(), savedTraining.getTrainee().getId(), savedTraining.getTrainer().getId());
@@ -149,9 +151,9 @@ public class TrainingService {
 
         trainingRepository.deleteById(id);
 
-        trainerWorkloadIntegrationService.sendTrainerWorkload(
+        eventPublisher.publishEvent(new TrainerWorkloadChangedEvent(
                 trainerWorkloadMapper.toRequest(training, WorkloadActionType.DELETE)
-        );
+        ));
 
         log.info("Cancelled training. trainingId={}, traineeId={}, trainerId={}",
                 training.getId(),

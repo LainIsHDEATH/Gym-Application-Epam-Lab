@@ -58,6 +58,12 @@ public class RestCallLoggingFilter extends OncePerRequestFilter {
         }
     }
 
+    @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) {
+        String uri = request.getRequestURI();
+        return uri.startsWith("/actuator");
+    }
+
     private void logRequestStarted(String method, String uri, String query) {
         log.info("REST request started. method={}, uri={}, query={}",
                 method, uri, query);

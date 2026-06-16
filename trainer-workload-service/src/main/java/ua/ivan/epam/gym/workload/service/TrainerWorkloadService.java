@@ -4,18 +4,15 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import ua.ivan.epam.gym.workload.dto.request.TrainerWorkloadRequest;
-import ua.ivan.epam.gym.workload.dto.response.MonthSummaryResponse;
 import ua.ivan.epam.gym.workload.dto.response.TrainerMonthlyWorkloadResponse;
 import ua.ivan.epam.gym.workload.dto.response.TrainerWorkloadResponse;
-import ua.ivan.epam.gym.workload.dto.response.YearSummaryResponse;
 import ua.ivan.epam.gym.workload.exception.exceptions.EntityNotFoundException;
+import ua.ivan.epam.gym.workload.mapper.TrainerWorkloadMapper;
 import ua.ivan.epam.gym.workload.model.TrainerWorkload;
 import ua.ivan.epam.gym.workload.model.WorkloadActionType;
 import ua.ivan.epam.gym.workload.repository.TrainerWorkloadRepository;
 
 import java.time.LocalDate;
-import java.util.List;
-import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -23,6 +20,7 @@ import java.util.Map;
 public class TrainerWorkloadService {
 
     private final TrainerWorkloadRepository trainerWorkloadRepository;
+    private final TrainerWorkloadMapper trainerWorkloadMapper;
 
     public void updateTrainerWorkload(TrainerWorkloadRequest request) {
         LocalDate trainingDate = request.trainingDate();
@@ -30,21 +28,18 @@ public class TrainerWorkloadService {
         int year = trainingDate.getYear();
         int month = trainingDate.getMonthValue();
 
-        TrainerWorkload initialWorkload = TrainerWorkload.builder()
-                .trainerUsername(request.trainerUsername())
-                .trainerFirstName(request.trainerFirstName())
-                .trainerLastName(request.trainerLastName())
-                .isActive(request.isActive())
-                .build();
+        TrainerWorkload initialWorkload = trainerWorkloadMapper.toEntity(request);
 
         TrainerWorkload workload = trainerWorkloadRepository.getOrCreate(
                 request.trainerUsername(),
                 initialWorkload
         );
 
-        workload.setTrainerFirstName(request.trainerFirstName());
-        workload.setTrainerLastName(request.trainerLastName());
-        workload.setIsActive(request.isActive());
+        workload.updateTrainerInfo(
+                request.trainerFirstName(),
+                request.trainerLastName(),
+                request.isActive()
+        );
 
         if (request.actionType() == WorkloadActionType.ADD) {
             workload.addDuration(year, month, request.trainingDuration());
@@ -62,54 +57,22 @@ public class TrainerWorkloadService {
     }
 
     public TrainerMonthlyWorkloadResponse getMonthlyWorkload(String username, int year, int month) {
-        TrainerWorkload workload = trainerWorkloadRepository.findByUsername(username)
-                .orElseThrow(() -> {
-                    log.warn("Trainer workload not found. trainerUsername={}", username);
-                    return new EntityNotFoundException("Trainer workload not found. username=" + username);
-                });
+        TrainerWorkload workload = findWorkloadByUsername(username);
 
-        return new TrainerMonthlyWorkloadResponse(
-                workload.getTrainerUsername(),
-                workload.getTrainerFirstName(),
-                workload.getTrainerLastName(),
-                workload.getIsActive(),
-                year,
-                month,
-                workload.getDuration(year, month)
-        );
+        return trainerWorkloadMapper.toMonthlyResponse(workload, year, month);
     }
 
     public TrainerWorkloadResponse getTrainerWorkload(String username) {
-        TrainerWorkload workload = trainerWorkloadRepository.findByUsername(username)
+        TrainerWorkload workload = findWorkloadByUsername(username);
+
+        return trainerWorkloadMapper.toResponse(workload);
+    }
+
+    private TrainerWorkload findWorkloadByUsername(String username) {
+        return trainerWorkloadRepository.findByUsername(username)
                 .orElseThrow(() -> {
                     log.warn("Trainer workload not found. trainerUsername={}", username);
                     return new EntityNotFoundException("Trainer workload not found. username=" + username);
                 });
-
-        List<YearSummaryResponse> years = workload.getYears()
-                .entrySet()
-                .stream()
-                .sorted(Map.Entry.comparingByKey())
-                .map(yearEntry -> new YearSummaryResponse(
-                        yearEntry.getKey(),
-                        yearEntry.getValue()
-                                .entrySet()
-                                .stream()
-                                .sorted(Map.Entry.comparingByKey())
-                                .map(monthEntry -> new MonthSummaryResponse(
-                                        monthEntry.getKey(),
-                                        monthEntry.getValue()
-                                ))
-                                .toList()
-                ))
-                .toList();
-
-        return new TrainerWorkloadResponse(
-                workload.getTrainerUsername(),
-                workload.getTrainerFirstName(),
-                workload.getTrainerLastName(),
-                workload.getIsActive(),
-                years
-        );
     }
 }

@@ -20,10 +20,16 @@ spring:
     user: ${DB_USERNAME}
     password: ${DB_PASSWORD}
 
+  activemq:
+    broker-url: ${ACTIVEMQ_BROKER_URL}
+    user: ${ACTIVEMQ_USER}
+    password: ${ACTIVEMQ_PASSWORD}
+
 security:
   jwt:
     secret: ${JWT_SECRET}
     expiration-minutes: ${JWT_EXPIRATION_MINUTES}
+    service-token-expiration-minutes: ${JWT_SERVICE_TOKEN_EXPIRATION_MINUTES}
 
   cors:
     allowed-origins: ${CORS_ALLOWED_ORIGINS}

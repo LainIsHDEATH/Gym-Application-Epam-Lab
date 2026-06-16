@@ -17,7 +17,7 @@
         <logger name="org.springframework" level="WARN"/>
         <logger name="org.hibernate" level="WARN"/>
         <logger name="org.hibernate.SQL" level="DEBUG"/>
-        <logger name="ua.ivan.epam.gym.application" level="DEBUG"/>
+        <logger name="ua.ivan.epam.gym.workload" level="DEBUG"/>
 
         <root level="INFO">
             <appender-ref ref="CONSOLE"/>

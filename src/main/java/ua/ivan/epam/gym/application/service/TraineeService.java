@@ -3,6 +3,7 @@ package ua.ivan.epam.gym.application.service;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -12,6 +13,7 @@ import ua.ivan.epam.gym.application.dto.request.*;
 import ua.ivan.epam.gym.application.dto.response.RegistrationResponse;
 import ua.ivan.epam.gym.application.dto.response.TraineeProfileResponse;
 import ua.ivan.epam.gym.application.dto.response.TrainerShortResponse;
+import ua.ivan.epam.gym.application.event.TrainerWorkloadChangedEvent;
 import ua.ivan.epam.gym.application.mapper.TraineeMapper;
 import ua.ivan.epam.gym.application.mapper.TrainerMapper;
 import ua.ivan.epam.gym.application.mapper.TrainerWorkloadMapper;
@@ -46,7 +48,7 @@ public class TraineeService {
     private final TrainerWorkloadMapper trainerWorkloadMapper;
     private final PasswordEncoder passwordEncoder;
 
-    private final TrainerWorkloadIntegrationService trainerWorkloadIntegrationService;
+    private final ApplicationEventPublisher eventPublisher;
 
     @CountGymEvent(GymMetric.TRAINEE_REGISTRATION)
     @Transactional
@@ -151,9 +153,9 @@ public class TraineeService {
             Set<Training> trainings = trainee.getTrainings();
             traineeRepository.deleteById(id);
 
-            trainings.forEach(training -> trainerWorkloadIntegrationService.sendTrainerWorkload(
+            trainings.forEach(training -> eventPublisher.publishEvent(new TrainerWorkloadChangedEvent(
                     trainerWorkloadMapper.toRequest(training, WorkloadActionType.DELETE)
-            ));
+            )));
 
             log.info("Deleted trainee profile. traineeId={}", id);
         }
@@ -169,9 +171,9 @@ public class TraineeService {
             Set<Training> trainings = trainee.getTrainings();
             traineeRepository.deleteByUsername(username);
 
-            trainings.forEach(training -> trainerWorkloadIntegrationService.sendTrainerWorkload(
+            trainings.forEach(training -> eventPublisher.publishEvent(new TrainerWorkloadChangedEvent(
                     trainerWorkloadMapper.toRequest(training, WorkloadActionType.DELETE)
-            ));
+            )));
 
             log.info("Deleted trainee profile. traineeId={}, username={}", trainee.getId(), username);
         }

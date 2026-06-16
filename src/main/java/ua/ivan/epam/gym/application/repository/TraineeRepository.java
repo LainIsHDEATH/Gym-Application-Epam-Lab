@@ -102,7 +102,7 @@ public class TraineeRepository implements CrudRepo<Long, Trainee> {
     }
 
     public void deleteByUsername (String username){
-        Trainee trainee = em.find(Trainee.class, username);
+        Trainee trainee = findByUsername(username).orElse(null);
 
         try {
             em.remove(trainee);

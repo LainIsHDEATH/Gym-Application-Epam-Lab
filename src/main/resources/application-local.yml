@@ -20,10 +20,20 @@ spring:
     user: postgres
     password: postgres
 
+  activemq:
+    broker-url: tcp://localhost:61616
+    user: admin
+    password: admin
+
+messaging:
+  queues:
+    trainer-workload: trainer.workload.queue
+
 security:
   jwt:
     secret: MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=
     expiration-minutes: 60
+    service-token-expiration-minutes: 5
 
   cors:
     allowed-origins: http://localhost:3000,http://localhost:5173
