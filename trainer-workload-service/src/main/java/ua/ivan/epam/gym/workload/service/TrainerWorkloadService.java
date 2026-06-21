@@ -28,12 +28,13 @@ public class TrainerWorkloadService {
         int year = trainingDate.getYear();
         int month = trainingDate.getMonthValue();
 
-        TrainerWorkload initialWorkload = trainerWorkloadMapper.toEntity(request);
-
-        TrainerWorkload workload = trainerWorkloadRepository.getOrCreate(
-                request.trainerUsername(),
-                initialWorkload
-        );
+        TrainerWorkload workload = trainerWorkloadRepository
+                .findByTrainerUsername(request.trainerUsername())
+                .orElseGet(() -> {
+                    log.info("Trainer workload document not found. Creating new document. trainerUsername={}",
+                            request.trainerUsername());
+                    return trainerWorkloadMapper.toEntity(request);
+                });
 
         workload.updateTrainerInfo(
                 request.trainerFirstName(),
@@ -69,7 +70,7 @@ public class TrainerWorkloadService {
     }
 
     private TrainerWorkload findWorkloadByUsername(String username) {
-        return trainerWorkloadRepository.findByUsername(username)
+        return trainerWorkloadRepository.findByTrainerUsername(username)
                 .orElseThrow(() -> {
                     log.warn("Trainer workload not found. trainerUsername={}", username);
                     return new EntityNotFoundException("Trainer workload not found. username=" + username);
