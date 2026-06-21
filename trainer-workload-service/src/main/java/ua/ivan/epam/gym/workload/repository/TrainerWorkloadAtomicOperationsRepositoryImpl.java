@@ -98,6 +98,7 @@ public class TrainerWorkloadAtomicOperationsRepositoryImpl
 
                 return;
             } catch (DuplicateKeyException exception) {
+                log.warn("Failed to upsert with pipeline. Attempt={}", attempt);
                 if (attempt == MAX_UPSERT_ATTEMPTS) {
                     throw exception;
                 }

@@ -11,6 +11,7 @@ import ua.ivan.epam.gym.workload.dto.response.TrainerMonthlyWorkloadResponse;
 import ua.ivan.epam.gym.workload.dto.response.TrainerWorkloadResponse;
 import ua.ivan.epam.gym.workload.dto.response.YearSummaryResponse;
 import ua.ivan.epam.gym.workload.exception.exceptions.EntityNotFoundException;
+import ua.ivan.epam.gym.workload.exception.exceptions.SubtractDurationException;
 import ua.ivan.epam.gym.workload.mapper.TrainerWorkloadMapper;
 import ua.ivan.epam.gym.workload.model.TrainerWorkload;
 import ua.ivan.epam.gym.workload.model.WorkloadActionType;
@@ -20,11 +21,20 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class TrainerWorkloadServiceTest {
+
+    private static final String TRAINER_USERNAME = "Mike.Brown";
+    private static final String UNKNOWN_USERNAME = "Unknown.Trainer";
 
     @Mock
     private TrainerWorkloadRepository trainerWorkloadRepository;
@@ -36,9 +46,9 @@ class TrainerWorkloadServiceTest {
     private TrainerWorkloadService trainerWorkloadService;
 
     @Test
-    void updateTrainerWorkloadShouldCreateWorkloadAndAddDurationWhenActionIsAdd() {
+    void updateTrainerWorkloadShouldAddDurationWhenActionIsAdd() {
         TrainerWorkloadRequest request = createRequest(
-                "Mike.Brown",
+                TRAINER_USERNAME,
                 "Mike",
                 "Brown",
                 true,
@@ -47,81 +57,18 @@ class TrainerWorkloadServiceTest {
                 WorkloadActionType.ADD
         );
 
-        TrainerWorkload initialWorkload = createWorkload(
-                "Mike.Brown",
-                "Mike",
-                "Brown",
-                true
-        );
-
-        when(trainerWorkloadMapper.toEntity(request))
-                .thenReturn(initialWorkload);
-
-        when(trainerWorkloadRepository.getOrCreate("Mike.Brown", initialWorkload))
-                .thenReturn(initialWorkload);
-
         trainerWorkloadService.updateTrainerWorkload(request);
 
-        assertEquals(60, initialWorkload.getDuration(2026, 5));
-        assertEquals("Mike", initialWorkload.getTrainerFirstName());
-        assertEquals("Brown", initialWorkload.getTrainerLastName());
-        assertTrue(initialWorkload.getIsActive());
+        verify(trainerWorkloadRepository).addDuration(request, 2026, 5);
 
-        verify(trainerWorkloadMapper).toEntity(request);
-        verify(trainerWorkloadRepository).getOrCreate("Mike.Brown", initialWorkload);
-        verify(trainerWorkloadRepository).save(initialWorkload);
-    }
-
-    @Test
-    void updateTrainerWorkloadShouldAddDurationToExistingWorkloadWhenActionIsAdd() {
-        TrainerWorkloadRequest request = createRequest(
-                "Mike.Brown",
-                "Michael",
-                "Brown",
-                false,
-                LocalDate.of(2026, 5, 10),
-                60,
-                WorkloadActionType.ADD
-        );
-
-        TrainerWorkload initialWorkload = createWorkload(
-                "Mike.Brown",
-                "Michael",
-                "Brown",
-                false
-        );
-
-        TrainerWorkload existingWorkload = createWorkload(
-                "Mike.Brown",
-                "Mike",
-                "Brown",
-                true
-        );
-
-        existingWorkload.addDuration(2026, 5, 45);
-
-        when(trainerWorkloadMapper.toEntity(request))
-                .thenReturn(initialWorkload);
-
-        when(trainerWorkloadRepository.getOrCreate("Mike.Brown", initialWorkload))
-                .thenReturn(existingWorkload);
-
-        trainerWorkloadService.updateTrainerWorkload(request);
-
-        assertEquals(105, existingWorkload.getDuration(2026, 5));
-        assertEquals("Michael", existingWorkload.getTrainerFirstName());
-        assertEquals("Brown", existingWorkload.getTrainerLastName());
-        assertFalse(existingWorkload.getIsActive());
-
-        verify(trainerWorkloadMapper).toEntity(request);
-        verify(trainerWorkloadRepository).getOrCreate("Mike.Brown", initialWorkload);
-        verify(trainerWorkloadRepository).save(existingWorkload);
+        verifyNoMoreInteractions(trainerWorkloadRepository);
+        verifyNoInteractions(trainerWorkloadMapper);
     }
 
     @Test
     void updateTrainerWorkloadShouldSubtractDurationWhenActionIsDelete() {
         TrainerWorkloadRequest request = createRequest(
-                "Mike.Brown",
+                TRAINER_USERNAME,
                 "Mike",
                 "Brown",
                 true,
@@ -130,41 +77,18 @@ class TrainerWorkloadServiceTest {
                 WorkloadActionType.DELETE
         );
 
-        TrainerWorkload initialWorkload = createWorkload(
-                "Mike.Brown",
-                "Mike",
-                "Brown",
-                true
-        );
-
-        TrainerWorkload existingWorkload = createWorkload(
-                "Mike.Brown",
-                "Mike",
-                "Brown",
-                true
-        );
-
-        existingWorkload.addDuration(2026, 5, 105);
-
-        when(trainerWorkloadMapper.toEntity(request))
-                .thenReturn(initialWorkload);
-
-        when(trainerWorkloadRepository.getOrCreate("Mike.Brown", initialWorkload))
-                .thenReturn(existingWorkload);
-
         trainerWorkloadService.updateTrainerWorkload(request);
 
-        assertEquals(60, existingWorkload.getDuration(2026, 5));
+        verify(trainerWorkloadRepository).subtractDuration(request, 2026, 5);
 
-        verify(trainerWorkloadMapper).toEntity(request);
-        verify(trainerWorkloadRepository).getOrCreate("Mike.Brown", initialWorkload);
-        verify(trainerWorkloadRepository).save(existingWorkload);
+        verifyNoMoreInteractions(trainerWorkloadRepository);
+        verifyNoInteractions(trainerWorkloadMapper);
     }
 
     @Test
-    void updateTrainerWorkloadShouldNotMakeDurationNegativeWhenDeleteDurationIsGreaterThanCurrent() {
+    void updateTrainerWorkloadShouldPropagateSubtractDurationException() {
         TrainerWorkloadRequest request = createRequest(
-                "Mike.Brown",
+                TRAINER_USERNAME,
                 "Mike",
                 "Brown",
                 true,
@@ -173,190 +97,188 @@ class TrainerWorkloadServiceTest {
                 WorkloadActionType.DELETE
         );
 
-        TrainerWorkload initialWorkload = createWorkload(
-                "Mike.Brown",
-                "Mike",
-                "Brown",
-                true
+        SubtractDurationException repositoryException =
+                new SubtractDurationException(
+                        "Accumulated duration is insufficient"
+                );
+
+        doThrow(repositoryException)
+                .when(trainerWorkloadRepository)
+                .subtractDuration(request, 2026, 5);
+
+        SubtractDurationException actualException = assertThrows(
+                SubtractDurationException.class,
+                () -> trainerWorkloadService.updateTrainerWorkload(
+                        request
+                )
         );
 
-        TrainerWorkload existingWorkload = createWorkload(
-                "Mike.Brown",
-                "Mike",
-                "Brown",
-                true
-        );
+        assertSame(repositoryException, actualException);
 
-        existingWorkload.addDuration(2026, 5, 30);
+        verify(trainerWorkloadRepository).subtractDuration(request, 2026, 5);
 
-        when(trainerWorkloadMapper.toEntity(request))
-                .thenReturn(initialWorkload);
-
-        when(trainerWorkloadRepository.getOrCreate("Mike.Brown", initialWorkload))
-                .thenReturn(existingWorkload);
-
-        trainerWorkloadService.updateTrainerWorkload(request);
-
-        assertEquals(0, existingWorkload.getDuration(2026, 5));
-
-        verify(trainerWorkloadMapper).toEntity(request);
-        verify(trainerWorkloadRepository).getOrCreate("Mike.Brown", initialWorkload);
-        verify(trainerWorkloadRepository).save(existingWorkload);
+        verifyNoMoreInteractions(trainerWorkloadRepository);
+        verifyNoInteractions(trainerWorkloadMapper);
     }
 
     @Test
-    void updateTrainerWorkloadShouldSaveInitialWorkloadWhenDeleteIsReceivedForNewTrainer() {
-        TrainerWorkloadRequest request = createRequest(
-                "Mike.Brown",
-                "Mike",
-                "Brown",
-                true,
-                LocalDate.of(2026, 5, 10),
-                60,
-                WorkloadActionType.DELETE
-        );
-
-        TrainerWorkload initialWorkload = createWorkload(
-                "Mike.Brown",
-                "Mike",
-                "Brown",
-                true
-        );
-
-        when(trainerWorkloadMapper.toEntity(request))
-                .thenReturn(initialWorkload);
-
-        when(trainerWorkloadRepository.getOrCreate("Mike.Brown", initialWorkload))
-                .thenReturn(initialWorkload);
-
-        trainerWorkloadService.updateTrainerWorkload(request);
-
-        assertEquals(0, initialWorkload.getDuration(2026, 5));
-
-        verify(trainerWorkloadMapper).toEntity(request);
-        verify(trainerWorkloadRepository).getOrCreate("Mike.Brown", initialWorkload);
-        verify(trainerWorkloadRepository).save(initialWorkload);
-    }
-
-    @Test
-    void getMonthlyWorkloadShouldReturnMappedMonthlyWorkloadWhenTrainerExists() {
+    void getMonthlyWorkloadShouldReturnMappedResponseWhenTrainerExists() {
         TrainerWorkload workload = createWorkload(
-                "Mike.Brown",
+                TRAINER_USERNAME,
                 "Mike",
                 "Brown",
                 true
         );
 
-        TrainerMonthlyWorkloadResponse response = new TrainerMonthlyWorkloadResponse(
-                "Mike.Brown",
-                "Mike",
-                "Brown",
-                true,
-                2026,
-                5,
-                105
-        );
+        TrainerMonthlyWorkloadResponse expectedResponse =
+                new TrainerMonthlyWorkloadResponse(
+                        TRAINER_USERNAME,
+                        "Mike",
+                        "Brown",
+                        true,
+                        2026,
+                        5,
+                        105
+                );
 
-        when(trainerWorkloadRepository.findByUsername("Mike.Brown"))
+        when(trainerWorkloadRepository.findByTrainerUsername(TRAINER_USERNAME))
                 .thenReturn(Optional.of(workload));
 
         when(trainerWorkloadMapper.toMonthlyResponse(workload, 2026, 5))
-                .thenReturn(response);
+                .thenReturn(expectedResponse);
 
-        TrainerMonthlyWorkloadResponse result =
-                trainerWorkloadService.getMonthlyWorkload("Mike.Brown", 2026, 5);
+        TrainerMonthlyWorkloadResponse actualResponse =
+                trainerWorkloadService.getMonthlyWorkload(
+                        TRAINER_USERNAME,
+                        2026,
+                        5
+                );
 
-        assertSame(response, result);
+        assertSame(expectedResponse, actualResponse);
 
-        verify(trainerWorkloadRepository).findByUsername("Mike.Brown");
+        verify(trainerWorkloadRepository).findByTrainerUsername(TRAINER_USERNAME);
         verify(trainerWorkloadMapper).toMonthlyResponse(workload, 2026, 5);
+
+        verifyNoMoreInteractions(
+                trainerWorkloadRepository,
+                trainerWorkloadMapper
+        );
     }
 
     @Test
     void getMonthlyWorkloadShouldThrowExceptionWhenTrainerDoesNotExist() {
-        when(trainerWorkloadRepository.findByUsername("Unknown.Trainer"))
-                .thenReturn(Optional.empty());
+        when(
+                trainerWorkloadRepository.findByTrainerUsername(
+                        UNKNOWN_USERNAME
+                )
+        ).thenReturn(Optional.empty());
 
         EntityNotFoundException exception = assertThrows(
                 EntityNotFoundException.class,
-                () -> trainerWorkloadService.getMonthlyWorkload("Unknown.Trainer", 2026, 5)
+                () -> trainerWorkloadService.getMonthlyWorkload(
+                        UNKNOWN_USERNAME,
+                        2026,
+                        5
+                )
         );
 
         assertEquals(
-                "Trainer workload not found. username=Unknown.Trainer",
+                "Trainer workload not found. username=" + UNKNOWN_USERNAME,
                 exception.getMessage()
         );
 
-        verify(trainerWorkloadRepository).findByUsername("Unknown.Trainer");
+        verify(trainerWorkloadRepository).findByTrainerUsername(UNKNOWN_USERNAME);
+
+        verifyNoMoreInteractions(trainerWorkloadRepository);
         verifyNoInteractions(trainerWorkloadMapper);
     }
 
     @Test
-    void getTrainerWorkloadShouldReturnMappedFullWorkloadWhenTrainerExists() {
+    void getTrainerWorkloadShouldReturnMappedResponseWhenTrainerExists() {
         TrainerWorkload workload = createWorkload(
-                "Mike.Brown",
+                TRAINER_USERNAME,
                 "Mike",
                 "Brown",
                 true
         );
 
-        TrainerWorkloadResponse response = new TrainerWorkloadResponse(
-                "Mike.Brown",
-                "Mike",
-                "Brown",
-                true,
-                List.of(
-                        new YearSummaryResponse(
-                                2026,
-                                List.of(
-                                        new MonthSummaryResponse(5, 105),
-                                        new MonthSummaryResponse(6, 90)
+        TrainerWorkloadResponse expectedResponse =
+                new TrainerWorkloadResponse(
+                        TRAINER_USERNAME,
+                        "Mike",
+                        "Brown",
+                        true,
+                        List.of(
+                                new YearSummaryResponse(
+                                        2026,
+                                        List.of(
+                                                new MonthSummaryResponse(
+                                                        5,
+                                                        105
+                                                ),
+                                                new MonthSummaryResponse(
+                                                        6,
+                                                        90
+                                                )
+                                        )
                                 )
                         )
-                )
-        );
+                );
 
-        when(trainerWorkloadRepository.findByUsername("Mike.Brown"))
+        when(trainerWorkloadRepository.findByTrainerUsername(TRAINER_USERNAME))
                 .thenReturn(Optional.of(workload));
 
         when(trainerWorkloadMapper.toResponse(workload))
-                .thenReturn(response);
+                .thenReturn(expectedResponse);
 
-        TrainerWorkloadResponse result =
-                trainerWorkloadService.getTrainerWorkload("Mike.Brown");
+        TrainerWorkloadResponse actualResponse =
+                trainerWorkloadService.getTrainerWorkload(
+                        TRAINER_USERNAME
+                );
 
-        assertSame(response, result);
+        assertSame(expectedResponse, actualResponse);
 
-        verify(trainerWorkloadRepository).findByUsername("Mike.Brown");
+        verify(trainerWorkloadRepository).findByTrainerUsername(TRAINER_USERNAME);
         verify(trainerWorkloadMapper).toResponse(workload);
+
+        verifyNoMoreInteractions(
+                trainerWorkloadRepository,
+                trainerWorkloadMapper
+        );
     }
 
     @Test
     void getTrainerWorkloadShouldThrowExceptionWhenTrainerDoesNotExist() {
-        when(trainerWorkloadRepository.findByUsername("Unknown.Trainer"))
+        when(trainerWorkloadRepository.findByTrainerUsername(UNKNOWN_USERNAME))
                 .thenReturn(Optional.empty());
 
         EntityNotFoundException exception = assertThrows(
                 EntityNotFoundException.class,
-                () -> trainerWorkloadService.getTrainerWorkload("Unknown.Trainer")
+                () -> trainerWorkloadService.getTrainerWorkload(
+                        UNKNOWN_USERNAME
+                )
         );
 
         assertEquals(
-                "Trainer workload not found. username=Unknown.Trainer",
+                "Trainer workload not found. username=" + UNKNOWN_USERNAME,
                 exception.getMessage()
         );
 
-        verify(trainerWorkloadRepository).findByUsername("Unknown.Trainer");
+        verify(trainerWorkloadRepository).findByTrainerUsername(UNKNOWN_USERNAME);
+
+        verifyNoMoreInteractions(trainerWorkloadRepository);
         verifyNoInteractions(trainerWorkloadMapper);
     }
 
-    private TrainerWorkloadRequest createRequest(String trainerUsername,
-                                                 String trainerFirstName,
-                                                 String trainerLastName,
-                                                 Boolean isActive,
-                                                 LocalDate trainingDate,
-                                                 Integer trainingDuration,
-                                                 WorkloadActionType actionType) {
+    private TrainerWorkloadRequest createRequest(
+            String trainerUsername,
+            String trainerFirstName,
+            String trainerLastName,
+            Boolean isActive,
+            LocalDate trainingDate,
+            Integer trainingDuration,
+            WorkloadActionType actionType
+    ) {
         return new TrainerWorkloadRequest(
                 trainerUsername,
                 trainerFirstName,
@@ -368,10 +290,12 @@ class TrainerWorkloadServiceTest {
         );
     }
 
-    private TrainerWorkload createWorkload(String trainerUsername,
-                                           String trainerFirstName,
-                                           String trainerLastName,
-                                           Boolean isActive) {
+    private TrainerWorkload createWorkload(
+            String trainerUsername,
+            String trainerFirstName,
+            String trainerLastName,
+            Boolean isActive
+    ) {
         return TrainerWorkload.builder()
                 .trainerUsername(trainerUsername)
                 .trainerFirstName(trainerFirstName)
