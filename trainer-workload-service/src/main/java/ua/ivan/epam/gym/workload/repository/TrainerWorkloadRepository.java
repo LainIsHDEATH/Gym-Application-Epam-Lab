@@ -6,7 +6,9 @@ import ua.ivan.epam.gym.workload.model.TrainerWorkload;
 import java.util.List;
 import java.util.Optional;
 
-public interface TrainerWorkloadRepository extends MongoRepository<TrainerWorkload, String> {
+public interface TrainerWorkloadRepository
+        extends MongoRepository<TrainerWorkload, String>,
+        TrainerWorkloadAtomicOperationsRepository {
 
     Optional<TrainerWorkload> findByTrainerUsername(String trainerUsername);
 

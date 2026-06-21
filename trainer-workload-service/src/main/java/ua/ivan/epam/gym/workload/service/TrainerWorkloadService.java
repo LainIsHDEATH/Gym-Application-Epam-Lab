@@ -9,7 +9,6 @@ import ua.ivan.epam.gym.workload.dto.response.TrainerWorkloadResponse;
 import ua.ivan.epam.gym.workload.exception.exceptions.EntityNotFoundException;
 import ua.ivan.epam.gym.workload.mapper.TrainerWorkloadMapper;
 import ua.ivan.epam.gym.workload.model.TrainerWorkload;
-import ua.ivan.epam.gym.workload.model.WorkloadActionType;
 import ua.ivan.epam.gym.workload.repository.TrainerWorkloadRepository;
 
 import java.time.LocalDate;
@@ -28,33 +27,31 @@ public class TrainerWorkloadService {
         int year = trainingDate.getYear();
         int month = trainingDate.getMonthValue();
 
-        TrainerWorkload workload = trainerWorkloadRepository
-                .findByTrainerUsername(request.trainerUsername())
-                .orElseGet(() -> {
-                    log.info("Trainer workload document not found. Creating new document. trainerUsername={}",
-                            request.trainerUsername());
-                    return trainerWorkloadMapper.toEntity(request);
-                });
+        switch (request.actionType()) {
+            case ADD -> {
+                trainerWorkloadRepository.addDuration(request, year, month);
 
-        workload.updateTrainerInfo(
-                request.trainerFirstName(),
-                request.trainerLastName(),
-                request.isActive()
-        );
+                log.info(
+                        "Trainer workload increased. trainerUsername={}, year={}, month={}, duration={}",
+                        request.trainerUsername(),
+                        year,
+                        month,
+                        request.trainingDuration()
+                );
+            }
 
-        if (request.actionType() == WorkloadActionType.ADD) {
-            workload.addDuration(year, month, request.trainingDuration());
+            case DELETE -> {
+                trainerWorkloadRepository.subtractDuration(request, year, month);
 
-            log.info("Trainer workload increased. trainerUsername={}, year={}, month={}, duration={}",
-                    request.trainerUsername(), year, month, request.trainingDuration());
-        } else if (request.actionType() == WorkloadActionType.DELETE) {
-            workload.subtractDuration(year, month, request.trainingDuration());
-
-            log.info("Trainer workload decreased. trainerUsername={}, year={}, month={}, duration={}",
-                    request.trainerUsername(), year, month, request.trainingDuration());
+                log.info(
+                        "Trainer workload decreased. trainerUsername={}, year={}, month={}, duration={}",
+                        request.trainerUsername(),
+                        year,
+                        month,
+                        request.trainingDuration()
+                );
+            }
         }
-
-        trainerWorkloadRepository.save(workload);
     }
 
     public TrainerMonthlyWorkloadResponse getMonthlyWorkload(String username, int year, int month) {
