@@ -1,31 +1,21 @@
 package ua.ivan.epam.gym.workload.repository;
 
-import org.springframework.stereotype.Repository;
+import org.springframework.data.mongodb.repository.MongoRepository;
 import ua.ivan.epam.gym.workload.model.TrainerWorkload;
 
+import java.util.List;
 import java.util.Optional;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 
-@Repository
-public class TrainerWorkloadRepository {
+public interface TrainerWorkloadRepository
+        extends MongoRepository<TrainerWorkload, String>,
+        TrainerWorkloadAtomicOperationsRepository {
 
-    private final ConcurrentMap<String, TrainerWorkload> storage = new ConcurrentHashMap<>();
+    Optional<TrainerWorkload> findByTrainerUsername(String trainerUsername);
 
-    public TrainerWorkload save(TrainerWorkload workload) {
-        storage.put(workload.getTrainerUsername(), workload);
-        return workload;
-    }
+    boolean existsByTrainerUsername(String trainerUsername);
 
-    public Optional<TrainerWorkload> findByUsername(String username) {
-        return Optional.ofNullable(storage.get(username));
-    }
-
-    public TrainerWorkload getOrCreate(String username, TrainerWorkload initialValue) {
-        return storage.computeIfAbsent(username, ignored -> initialValue);
-    }
-
-    public boolean existsByUsername(String username) {
-        return storage.containsKey(username);
-    }
+    List<TrainerWorkload> findByTrainerFirstNameAndTrainerLastName(
+            String trainerFirstName,
+            String trainerLastName
+    );
 }

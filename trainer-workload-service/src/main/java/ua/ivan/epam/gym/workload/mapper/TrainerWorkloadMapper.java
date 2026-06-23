@@ -7,14 +7,16 @@ import ua.ivan.epam.gym.workload.dto.response.MonthSummaryResponse;
 import ua.ivan.epam.gym.workload.dto.response.TrainerMonthlyWorkloadResponse;
 import ua.ivan.epam.gym.workload.dto.response.TrainerWorkloadResponse;
 import ua.ivan.epam.gym.workload.dto.response.YearSummaryResponse;
+import ua.ivan.epam.gym.workload.model.MonthSummary;
 import ua.ivan.epam.gym.workload.model.TrainerWorkload;
+import ua.ivan.epam.gym.workload.model.YearSummary;
 
 import java.util.List;
-import java.util.Map;
 
 @Mapper(componentModel = "spring")
 public interface TrainerWorkloadMapper {
 
+    @Mapping(target = "id", ignore = true)
     @Mapping(target = "years", ignore = true)
     TrainerWorkload toEntity(TrainerWorkloadRequest request);
 
@@ -38,24 +40,22 @@ public interface TrainerWorkloadMapper {
     @Mapping(target = "years", expression = "java(toYearSummaryResponses(workload.getYears()))")
     TrainerWorkloadResponse toResponse(TrainerWorkload workload);
 
-    default List<YearSummaryResponse> toYearSummaryResponses(Map<Integer, Map<Integer, Integer>> years) {
-        return years.entrySet()
-                .stream()
-                .sorted(Map.Entry.comparingByKey())
-                .map(yearEntry -> new YearSummaryResponse(
-                        yearEntry.getKey(),
-                        toMonthSummaryResponses(yearEntry.getValue())
+    default List<YearSummaryResponse> toYearSummaryResponses(List<YearSummary> years) {
+        return years.stream()
+                .sorted((y1, y2) -> Integer.compare(y2.getYear(), y1.getYear()))
+                .map(yearSummary -> new YearSummaryResponse(
+                        yearSummary.getYear(),
+                        toMonthSummaryResponses(yearSummary.getMonths())
                 ))
                 .toList();
     }
 
-    default List<MonthSummaryResponse> toMonthSummaryResponses(Map<Integer, Integer> months) {
-        return months.entrySet()
-                .stream()
-                .sorted(Map.Entry.comparingByKey())
+    default List<MonthSummaryResponse> toMonthSummaryResponses(List<MonthSummary> months) {
+        return months.stream()
+                .sorted((m1, m2) -> Integer.compare(m2.getMonth(), m1.getMonth()))
                 .map(monthEntry -> new MonthSummaryResponse(
-                        monthEntry.getKey(),
-                        monthEntry.getValue()
+                        monthEntry.getMonth(),
+                        monthEntry.getTrainingSummaryDuration()
                 ))
                 .toList();
     }

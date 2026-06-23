@@ -11,6 +11,10 @@ spring:
     user: admin
     password: admin
 
+  data:
+    mongodb:
+      uri: mongodb://admin:admin@localhost:27017/trainer_workload_db?authSource=admin
+
 security:
   jwt:
     secret: MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=

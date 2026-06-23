@@ -9,7 +9,6 @@ import ua.ivan.epam.gym.workload.dto.response.TrainerWorkloadResponse;
 import ua.ivan.epam.gym.workload.exception.exceptions.EntityNotFoundException;
 import ua.ivan.epam.gym.workload.mapper.TrainerWorkloadMapper;
 import ua.ivan.epam.gym.workload.model.TrainerWorkload;
-import ua.ivan.epam.gym.workload.model.WorkloadActionType;
 import ua.ivan.epam.gym.workload.repository.TrainerWorkloadRepository;
 
 import java.time.LocalDate;
@@ -28,32 +27,31 @@ public class TrainerWorkloadService {
         int year = trainingDate.getYear();
         int month = trainingDate.getMonthValue();
 
-        TrainerWorkload initialWorkload = trainerWorkloadMapper.toEntity(request);
+        switch (request.actionType()) {
+            case ADD -> {
+                trainerWorkloadRepository.addDuration(request, year, month);
 
-        TrainerWorkload workload = trainerWorkloadRepository.getOrCreate(
-                request.trainerUsername(),
-                initialWorkload
-        );
+                log.info(
+                        "Trainer workload increased. trainerUsername={}, year={}, month={}, duration={}",
+                        request.trainerUsername(),
+                        year,
+                        month,
+                        request.trainingDuration()
+                );
+            }
 
-        workload.updateTrainerInfo(
-                request.trainerFirstName(),
-                request.trainerLastName(),
-                request.isActive()
-        );
+            case DELETE -> {
+                trainerWorkloadRepository.subtractDuration(request, year, month);
 
-        if (request.actionType() == WorkloadActionType.ADD) {
-            workload.addDuration(year, month, request.trainingDuration());
-
-            log.info("Trainer workload increased. trainerUsername={}, year={}, month={}, duration={}",
-                    request.trainerUsername(), year, month, request.trainingDuration());
-        } else if (request.actionType() == WorkloadActionType.DELETE) {
-            workload.subtractDuration(year, month, request.trainingDuration());
-
-            log.info("Trainer workload decreased. trainerUsername={}, year={}, month={}, duration={}",
-                    request.trainerUsername(), year, month, request.trainingDuration());
+                log.info(
+                        "Trainer workload decreased. trainerUsername={}, year={}, month={}, duration={}",
+                        request.trainerUsername(),
+                        year,
+                        month,
+                        request.trainingDuration()
+                );
+            }
         }
-
-        trainerWorkloadRepository.save(workload);
     }
 
     public TrainerMonthlyWorkloadResponse getMonthlyWorkload(String username, int year, int month) {
@@ -69,7 +67,7 @@ public class TrainerWorkloadService {
     }
 
     private TrainerWorkload findWorkloadByUsername(String username) {
-        return trainerWorkloadRepository.findByUsername(username)
+        return trainerWorkloadRepository.findByTrainerUsername(username)
                 .orElseThrow(() -> {
                     log.warn("Trainer workload not found. trainerUsername={}", username);
                     return new EntityNotFoundException("Trainer workload not found. username=" + username);

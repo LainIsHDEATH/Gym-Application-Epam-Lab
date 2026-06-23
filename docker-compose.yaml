@@ -16,6 +16,23 @@ services:
       timeout: 5s
       retries: 5
 
+  mongo:
+    image: mongo:7
+    container_name: mongo_db
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: admin
+      MONGO_INITDB_DATABASE: trainer_workload_db
+    volumes:
+      - mongodata:/data/db
+    healthcheck:
+      test: [ "CMD", "mongosh", "--eval", "db.adminCommand('ping')" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   activemq:
     image: apache/activemq-classic:6.1.3
     container_name: activemq
@@ -53,6 +70,7 @@ services:
       - "8081:8081"
     environment:
       SPRING_PROFILES_ACTIVE: dev
+      SPRING_DATA_MONGODB_URI: mongodb://admin:admin@mongo:27017/trainer_workload_db?authSource=admin
       ACTIVEMQ_BROKER_URL: tcp://activemq:61616
       ACTIVEMQ_USER: admin
       ACTIVEMQ_PASSWORD: admin
@@ -62,6 +80,8 @@ services:
       activemq:
         condition: service_healthy
       eureka-discovery-server:
+        condition: service_healthy
+      mongo:
         condition: service_healthy
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://localhost:8081/actuator/health" ]
@@ -100,3 +120,4 @@ services:
 volumes:
   pgdata:
   activemqdata:
+  mongodata:
