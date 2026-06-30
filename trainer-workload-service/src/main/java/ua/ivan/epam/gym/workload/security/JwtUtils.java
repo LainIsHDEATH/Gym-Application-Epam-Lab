@@ -25,11 +25,15 @@ public class JwtUtils {
         return expiresAt != null && expiresAt.isAfter(Instant.now());
     }
 
-    public boolean hasServiceRole(String token) {
+
+    public List<String> extractAuthorities(String token) {
         Jwt jwt = jwtDecoder.decode(token);
 
-        List<String> authorities = jwt.getClaimAsStringList("authorities");
+        List<String> authorities =
+                jwt.getClaimAsStringList("authorities");
 
-        return authorities != null && authorities.contains("ROLE_SERVICE");
+        return authorities == null
+                ? List.of()
+                : authorities;
     }
 }

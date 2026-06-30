@@ -15,6 +15,7 @@ import org.springframework.web.servlet.NoHandlerFoundException;
 import ua.ivan.epam.gym.workload.exception.ErrorResponse;
 import ua.ivan.epam.gym.workload.exception.FieldErrorResponse;
 import ua.ivan.epam.gym.workload.exception.exceptions.EntityNotFoundException;
+import ua.ivan.epam.gym.workload.exception.exceptions.SubtractDurationException;
 
 import java.util.List;
 
@@ -135,6 +136,26 @@ public class GlobalExceptionHandler {
         return ErrorResponse.of(
                 HttpStatus.METHOD_NOT_ALLOWED.value(),
                 HttpStatus.METHOD_NOT_ALLOWED.getReasonPhrase(),
+                exception.getMessage(),
+                request.getRequestURI()
+        );
+    }
+
+    @ExceptionHandler(SubtractDurationException.class)
+    @ResponseStatus(HttpStatus.CONFLICT)
+    public ErrorResponse handleSubtractDurationException(
+            SubtractDurationException exception,
+            HttpServletRequest request
+    ) {
+        log.warn(
+                "Cannot subtract trainer workload. path={}, message={}",
+                request.getRequestURI(),
+                exception.getMessage()
+        );
+
+        return ErrorResponse.of(
+                HttpStatus.CONFLICT.value(),
+                HttpStatus.CONFLICT.getReasonPhrase(),
                 exception.getMessage(),
                 request.getRequestURI()
         );

@@ -23,7 +23,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private static final String AUTHORIZATION_HEADER = "Authorization";
     private static final String BEARER_PREFIX = "Bearer ";
-    private static final String ROLE_SERVICE = "ROLE_SERVICE";
 
     private final JwtUtils jwtUtils;
 
@@ -41,19 +40,25 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         String token = authorizationHeader.substring(BEARER_PREFIX.length());
 
         try {
-            if (!jwtUtils.isTokenValid(token) || !jwtUtils.hasServiceRole(token)) {
+            if (!jwtUtils.isTokenValid(token)) {
                 filterChain.doFilter(request, response);
                 return;
             }
 
             String subject = jwtUtils.extractSubject(token);
 
+            List<SimpleGrantedAuthority> authorities =
+                    jwtUtils.extractAuthorities(token)
+                            .stream()
+                            .map(SimpleGrantedAuthority::new)
+                            .toList();
+
             if (subject != null && SecurityContextHolder.getContext().getAuthentication() == null) {
                 UsernamePasswordAuthenticationToken authentication =
                         new UsernamePasswordAuthenticationToken(
                                 subject,
                                 null,
-                                List.of(new SimpleGrantedAuthority(ROLE_SERVICE))
+                                authorities
                         );
 
                 authentication.setDetails(
