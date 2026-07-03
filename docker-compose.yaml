@@ -8,6 +8,8 @@ services:
       POSTGRES_DB: gym_db
     ports:
       - "5431:5432"
+    networks:
+      - gym-network
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -25,6 +27,8 @@ services:
       MONGO_INITDB_ROOT_USERNAME: admin
       MONGO_INITDB_ROOT_PASSWORD: admin
       MONGO_INITDB_DATABASE: trainer_workload_db
+    networks:
+      - gym-network
     volumes:
       - mongodata:/data/db
     healthcheck:
@@ -44,6 +48,8 @@ services:
     environment:
       ACTIVEMQ_ADMIN_LOGIN: admin
       ACTIVEMQ_ADMIN_PASSWORD: admin
+    networks:
+      - gym-network
     healthcheck:
       test: [ "CMD-SHELL", "curl -fsu admin:admin http://localhost:8161/admin/" ]
       interval: 10s
@@ -57,6 +63,8 @@ services:
       - "8761:8761"
     environment:
       SPRING_PROFILES_ACTIVE: dev
+    networks:
+      - gym-network
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://localhost:8761/actuator/health" ]
       interval: 20s
@@ -76,6 +84,8 @@ services:
       ACTIVEMQ_PASSWORD: admin
       EUREKA_URI: http://eureka-discovery-server:8761/eureka
       JWT_SECRET: MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=
+    networks:
+      - gym-network
     depends_on:
       activemq:
         condition: service_healthy
@@ -104,6 +114,8 @@ services:
       ACTIVEMQ_PASSWORD: admin
       EUREKA_URI: http://eureka-discovery-server:8761/eureka
       JWT_SECRET: MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=
+    networks:
+      - gym-network
     depends_on:
       db:
         condition: service_healthy
@@ -116,6 +128,10 @@ services:
       interval: 20s
       timeout: 5s
       retries: 5
+
+networks:
+  gym-network:
+    driver: bridge
 
 volumes:
   pgdata:
